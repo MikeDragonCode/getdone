@@ -345,6 +345,62 @@ body {
 .btn-add-habit.grind-add:hover { border-color: var(--grind-color); color: var(--grind-color); background: var(--grind-bg); }
 .btn-add-habit.glow-add:hover { border-color: var(--glow-color); color: var(--glow-color); background: var(--glow-bg); }
 
+/* Timer */
+.btn-timer {
+  flex: 0 0 44px;
+}
+
+.btn-timer:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-increment.timer-active {
+  font-variant-numeric: tabular-nums;
+  animation: timerPulse 2s ease-in-out infinite;
+}
+
+.btn-increment.timer-active.grind {
+  border-color: var(--grind-color);
+  color: var(--grind-color);
+  background: var(--grind-bg);
+}
+
+.btn-increment.timer-active.glow {
+  border-color: var(--glow-color);
+  color: var(--glow-color);
+  background: var(--glow-bg);
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Emoji presets */
+.emoji-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.emoji-preset {
+  font-size: 1.25rem;
+  padding: 0.35rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.emoji-preset:hover { background: var(--bg-surface-hover); }
+
+.emoji-preset.active {
+  background: var(--glow-bg);
+  border-color: var(--glow-color);
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

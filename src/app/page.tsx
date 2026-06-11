@@ -5,6 +5,13 @@ import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
 import { getUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
 
+const EMOJI_PRESETS = ['💻', '🏋️', '📚', '🧘', '🏃', '🎮', '🍿', '🏀', '🎧', '😴', '🎨', '🚗'];
+
+// "Take a break" nudge fires every time the bank crosses another full chunk
+const BREAK_CHUNK_MINS = 30;
+
+const TIMER_KEY = 'getdone_timer';
+
 const DEFAULT_HABITS: HabitItem[] = [
   { id: '1', name: 'Deep Work', emoji: '💻', type: 'grind', valueType: 'duration', earnRate: 0.25 }, // 1 hr = 15m
   { id: '2', name: 'Workout', emoji: '🏋️', type: 'grind', valueType: 'duration', earnRate: 0.5 }, // 1 hr = 30m
@@ -20,6 +27,8 @@ export default function Home() {
   const [toasts, setToasts] = useState<{ id: number; message: string; type: 'grind' | 'glow' }[]>([]);
   const [modal, setModal] = useState<{ type: 'grind' | 'glow'; habit: HabitItem | null } | null>(null);
   const [form, setForm] = useState({ name: '', emoji: '', valueType: 'duration' as 'duration' | 'counter', rate: '' });
+  const [timer, setTimer] = useState<{ habitId: string; type: 'grind' | 'glow'; startedAt: number } | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     let userData = getUserData();
@@ -49,6 +58,20 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // Restore a running timer (it survives page refresh via localStorage)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TIMER_KEY);
+      if (raw) setTimer(JSON.parse(raw));
+    } catch { /* corrupt timer state — start fresh */ }
+  }, []);
+
+  useEffect(() => {
+    if (!timer) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [timer]);
+
   const showToast = (message: string, type: 'grind' | 'glow') => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -62,9 +85,37 @@ export default function Home() {
   const grindHabits = data.habits.filter(h => h.type === 'grind');
   const glowHabits = data.habits.filter(h => h.type === 'glow');
 
+  const startTimer = (habitId: string, type: 'grind' | 'glow') => {
+    const t = { habitId, type, startedAt: Date.now() };
+    setTimer(t);
+    setNow(Date.now());
+    localStorage.setItem(TIMER_KEY, JSON.stringify(t));
+    // Ask for notification permission on first timer use — that's when the
+    // "time to unwind" nudge becomes meaningful
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  };
+
+  const stopTimer = () => {
+    if (!timer) return;
+    const mins = Math.max(1, Math.round((Date.now() - timer.startedAt) / 60000));
+    setTimer(null);
+    localStorage.removeItem(TIMER_KEY);
+    addIncrement(timer.habitId, timer.type, mins);
+  };
+
+  const formatElapsed = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
   const addIncrement = (habitId: string, type: 'grind' | 'glow', amount: number) => {
     const habit = data.habits.find(h => h.id === habitId);
     if (!habit) return;
+    const bankBefore = data.earnedTimeBank;
 
     const newLog = { ...todayLog };
     const logs = type === 'grind' ? newLog.grindLogs : newLog.glowLogs;
@@ -91,9 +142,23 @@ export default function Home() {
 
     setTodayLog(newLog);
     saveDayLog(newLog, data);
-    
+
     const newData = getUserData();
     if (newData) setData(newData);
+
+    // Apple-Watch-style nudge: every BREAK_CHUNK_MINS earned, remind to unwind
+    if (type === 'grind' && newData) {
+      const before = Math.floor(Math.max(0, bankBefore) / BREAK_CHUNK_MINS);
+      const after = Math.floor(Math.max(0, newData.earnedTimeBank) / BREAK_CHUNK_MINS);
+      if (after > before) {
+        const earned = after * BREAK_CHUNK_MINS;
+        const msg = `🛋 Time to unwind — you've banked ${earned} min. Go be yourself.`;
+        showToast(msg, 'glow');
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('GetDone', { body: msg });
+        }
+      }
+    }
   };
 
   const openModal = (type: 'grind' | 'glow', habit: HabitItem | null) => {
@@ -160,8 +225,9 @@ export default function Home() {
   const bankMins = Math.floor(data.earnedTimeBank);
   const isBankPositive = bankMins >= 0;
   
-  // Max bank visual cap for the progress bar (e.g. 120 minutes)
-  const maxBank = 120;
+  // Bar represents two break-chunks (1 hour) so it visibly fills within a
+  // single work session instead of taking a full day
+  const maxBank = BREAK_CHUNK_MINS * 2;
   const progressPercent = Math.min(100, Math.max(0, (Math.abs(bankMins) / maxBank) * 100));
 
   return (
@@ -235,6 +301,13 @@ export default function Home() {
                       <>
                         <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 15)}>+15m</button>
                         <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 60)}>+1h</button>
+                        {timer?.habitId === habit.id ? (
+                          <button className="btn-increment timer-active grind" onClick={stopTimer}>
+                            ■ {formatElapsed(now - timer.startedAt)}
+                          </button>
+                        ) : (
+                          <button className="btn-increment btn-timer" onClick={() => startTimer(habit.id, 'grind')} disabled={!!timer}>▶</button>
+                        )}
                       </>
                     ) : (
                       <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 1)}>+1 Done</button>
@@ -278,6 +351,13 @@ export default function Home() {
                       <>
                         <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 15)}>-15m</button>
                         <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 60)}>-1h</button>
+                        {timer?.habitId === habit.id ? (
+                          <button className="btn-increment timer-active glow" onClick={stopTimer}>
+                            ■ {formatElapsed(now - timer.startedAt)}
+                          </button>
+                        ) : (
+                          <button className="btn-increment btn-timer" onClick={() => startTimer(habit.id, 'glow')} disabled={!!timer}>▶</button>
+                        )}
                       </>
                     ) : (
                       <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 1)}>-1 Done</button>
@@ -322,6 +402,18 @@ export default function Home() {
                   autoFocus
                 />
               </div>
+            </div>
+
+            <div className="emoji-presets">
+              {EMOJI_PRESETS.map(em => (
+                <button
+                  key={em}
+                  className={`emoji-preset ${form.emoji === em ? 'active' : ''}`}
+                  onClick={() => setForm({ ...form, emoji: em })}
+                >
+                  {em}
+                </button>
+              ))}
             </div>
 
             <div className="form-field">

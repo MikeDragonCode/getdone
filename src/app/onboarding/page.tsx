@@ -30,6 +30,9 @@ const DEFAULT_GLOW: HabitItem[] = [
   { id: 'gl10', name: 'Doing Absolutely Nothing', emoji: '🦥', type: 'glow', valueType: 'duration', costRate: 1.0 },
 ];
 
+const EMOJI_PRESETS_GRIND = ['💻', '🏋️', '📚', '🧹', '🚀', '🧘', '🏃', '✍️', '🎯', '🔧'];
+const EMOJI_PRESETS_GLOW = ['🎮', '🍿', '🏀', '🎧', '😴', '🍻', '🛹', '🎨', '🚗', '🦥'];
+
 export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [grindOptions, setGrindOptions] = useState<HabitItem[]>(DEFAULT_GRIND);
@@ -88,22 +91,7 @@ export default function Onboarding() {
     setCustomEmoji('✨');
   };
 
-  // Sort: Selected first
-  const sortedGrind = [...grindOptions].sort((a, b) => {
-    const aSel = selectedGrind.includes(a.id);
-    const bSel = selectedGrind.includes(b.id);
-    if (aSel && !bSel) return -1;
-    if (!aSel && bSel) return 1;
-    return 0;
-  });
-
-  const sortedGlow = [...glowOptions].sort((a, b) => {
-    const aSel = selectedGlow.includes(a.id);
-    const bSel = selectedGlow.includes(b.id);
-    if (aSel && !bSel) return -1;
-    if (!aSel && bSel) return 1;
-    return 0;
-  });
+  // Keep list order stable while toggling — reordering makes the list jump under the user's finger
 
   return (
     <main className="container" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', minHeight: '100vh' }}>
@@ -131,7 +119,7 @@ export default function Onboarding() {
           <p style={{ color: 'var(--text-muted)' }}>Select the hard things that earn you time.</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50vh', overflowY: 'auto', paddingRight: '10px' }}>
-            {sortedGrind.map(h => (
+            {grindOptions.map(h => (
               <div 
                 key={h.id} 
                 onClick={() => toggleSelection(h.id, 'grind')}
@@ -149,11 +137,26 @@ export default function Onboarding() {
             ))}
             
             {/* Custom Add */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <input 
-                type="text" 
-                placeholder="Custom emoji" 
-                value={customEmoji} 
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+              {EMOJI_PRESETS_GRIND.map(em => (
+                <button
+                  key={em}
+                  onClick={() => setCustomEmoji(em)}
+                  style={{
+                    fontSize: '1.25rem', padding: '0.35rem', background: customEmoji === em ? 'var(--grind-bg)' : 'transparent',
+                    border: `1px solid ${customEmoji === em ? 'var(--grind-color)' : 'transparent'}`,
+                    borderRadius: 'var(--radius-sm)', cursor: 'pointer'
+                  }}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                placeholder="😀"
+                value={customEmoji}
                 onChange={e => setCustomEmoji(e.target.value)}
                 style={{ width: '3rem', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)' }}
               />
@@ -189,7 +192,7 @@ export default function Onboarding() {
           <p style={{ color: 'var(--text-muted)' }}>Select the ways you want to unwind.</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50vh', overflowY: 'auto', paddingRight: '10px' }}>
-            {sortedGlow.map(h => (
+            {glowOptions.map(h => (
               <div 
                 key={h.id} 
                 onClick={() => toggleSelection(h.id, 'glow')}
@@ -207,11 +210,26 @@ export default function Onboarding() {
             ))}
             
             {/* Custom Add */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <input 
-                type="text" 
-                placeholder="Emoji" 
-                value={customEmoji} 
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+              {EMOJI_PRESETS_GLOW.map(em => (
+                <button
+                  key={em}
+                  onClick={() => setCustomEmoji(em)}
+                  style={{
+                    fontSize: '1.25rem', padding: '0.35rem', background: customEmoji === em ? 'var(--glow-bg)' : 'transparent',
+                    border: `1px solid ${customEmoji === em ? 'var(--glow-color)' : 'transparent'}`,
+                    borderRadius: 'var(--radius-sm)', cursor: 'pointer'
+                  }}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                placeholder="😀"
+                value={customEmoji}
                 onChange={e => setCustomEmoji(e.target.value)}
                 style={{ width: '3rem', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)' }}
               />
