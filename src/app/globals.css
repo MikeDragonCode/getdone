@@ -78,6 +78,14 @@ body {
   padding: 0.75rem 1.25rem;
   border-radius: var(--radius-full);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.streak:hover {
+  border-color: var(--grind-border);
+  background: var(--bg-surface-hover);
 }
 
 .streak-icon {
@@ -451,6 +459,93 @@ body {
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
+}
+
+/* Streak modal */
+.streak-modal {
+  align-items: stretch;
+}
+
+.streak-stats {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.streak-stat {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.streak-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.streak-stat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+}
+
+.cal-head {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-bottom: 0.25rem;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cal-day.active {
+  background: var(--grind-bg);
+  border-color: var(--grind-border);
+}
+
+.cal-day.rest {
+  opacity: 0.7;
+}
+
+.cal-day.future {
+  opacity: 0.25;
+}
+
+.cal-day.today {
+  border-color: var(--grind-color);
+  box-shadow: 0 0 10px rgba(251, 146, 60, 0.25);
+}
+
+.streak-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* Break nudge overlay */

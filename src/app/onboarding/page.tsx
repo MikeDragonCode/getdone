@@ -43,6 +43,7 @@ export default function Onboarding() {
 
   const [customName, setCustomName] = useState('');
   const [customEmoji, setCustomEmoji] = useState('✨');
+  const [restDays, setRestDays] = useState<number[]>([0, 6]); // default 5/2
 
   // Each step starts from the top — prevents the page "jumping" mid-scroll
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function Onboarding() {
     if (finalHabits.filter(h => h.type === 'grind').length === 0) finalHabits.push(DEFAULT_GRIND[0]);
     if (finalHabits.filter(h => h.type === 'glow').length === 0) finalHabits.push(DEFAULT_GLOW[0]);
 
-    const data = initUserData(finalHabits);
+    const data = initUserData(finalHabits, restDays);
     data.onboardingComplete = true;
     localStorage.setItem('getdone_data_v2', JSON.stringify(data));
     window.location.href = '/';
@@ -237,11 +238,49 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <button 
-            onClick={handleComplete}
+          <button
+            onClick={() => { if (customName.trim()) addCustom('glow'); setStep(4); }}
             style={{ padding: '1rem 2rem', background: 'var(--glow-color)', color: 'white', borderRadius: 'var(--radius-full)', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', border: 'none', marginTop: '1rem' }}
           >
-            Finish ({selectedGlow.length} selected)
+            Next ({selectedGlow.length} selected)
+          </button>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUpFade 0.5s ease', width: '100%' }}>
+          <h2>When do you <span style={{ color: 'var(--balanced-color)' }}>rest</span>?</h2>
+          <p style={{ color: 'var(--text-muted)' }}>
+            Pick your days off — any schedule works: 5/2, 2/2, part-time.<br/>
+            On rest days glow is half price and your streak never breaks.
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, day) => {
+              const selected = restDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  onClick={() => setRestDays(prev => selected ? prev.filter(d => d !== day) : [...prev, day])}
+                  style={{
+                    width: '64px', padding: '0.85rem 0', fontWeight: 'bold', fontSize: '0.9rem',
+                    background: selected ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-surface)',
+                    border: `1px solid ${selected ? 'var(--balanced-color)' : 'rgba(255,255,255,0.1)'}`,
+                    color: selected ? 'var(--balanced-color)' : 'var(--text-main)',
+                    borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'var(--transition)'
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleComplete}
+            style={{ padding: '1rem 2rem', background: 'var(--balanced-color)', color: 'white', borderRadius: 'var(--radius-full)', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', border: 'none', marginTop: '1rem' }}
+          >
+            Finish {restDays.length > 0 ? `(${restDays.length} rest days)` : '(no rest days)'}
           </button>
         </div>
       )}

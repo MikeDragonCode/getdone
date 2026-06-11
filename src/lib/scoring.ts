@@ -1,12 +1,17 @@
 import { ItemLog, HabitItem, DayScore } from './types';
 
+// On rest days glow is half price and glow-only days are celebrated, not shamed
+export const REST_DAY_GLOW_DISCOUNT = 0.5;
+
 export function calculateDailyMetrics(
   grindLogs: ItemLog[],
   glowLogs: ItemLog[],
-  habits: HabitItem[]
+  habits: HabitItem[],
+  restDay = false
 ): { earnedTimeDelta: number; scoreInfo: DayScore } {
   let earnedToday = 0;
   let spentToday = 0;
+  const glowMultiplier = restDay ? REST_DAY_GLOW_DISCOUNT : 1;
 
   // Calculate earned time
   grindLogs.forEach(log => {
@@ -20,7 +25,7 @@ export function calculateDailyMetrics(
   glowLogs.forEach(log => {
     const habit = habits.find(h => h.id === log.habitId);
     if (habit && habit.costRate) {
-      spentToday += log.value * habit.costRate;
+      spentToday += log.value * habit.costRate * glowMultiplier;
     }
   });
 
@@ -40,10 +45,17 @@ export function calculateDailyMetrics(
     label = 'You earned a break 💜';
     labelClass = 'label-grind';
   } else if (spentToday > 0 && earnedToday === 0) {
-    // Glowing without grinding
-    score = 30;
-    label = 'Time to grind 🔥';
-    labelClass = 'label-glow';
+    if (restDay) {
+      // That's exactly what a rest day is for
+      score = 80;
+      label = 'Rest day — enjoy 🦥';
+      labelClass = 'label-balanced';
+    } else {
+      // Glowing without grinding
+      score = 30;
+      label = 'Time to grind 🔥';
+      labelClass = 'label-glow';
+    }
   } else {
     // Mix of both
     // Perfect is if spent is roughly equal to earned (or slightly less to build a bank)

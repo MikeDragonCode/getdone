@@ -31,6 +31,9 @@ export interface UserData {
   earnedTimeBank: number; // TOTAL accumulated minutes available to spend
   onboardingComplete: boolean;
   createdAt: string;
+  // Days of week (0=Sun..6=Sat) the user doesn't grind: glow is discounted
+  // and the streak doesn't break. Supports 5/2, 2/2, part-time schedules.
+  restDays?: number[];
 }
 
 export interface DayScore {

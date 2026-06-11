@@ -17,16 +17,21 @@ export function saveUserData(data: UserData): void {
   localStorage.setItem(STORE_KEY, JSON.stringify(data));
 }
 
-export function initUserData(habits: HabitItem[]): UserData {
+export function initUserData(habits: HabitItem[], restDays: number[] = []): UserData {
   const data: UserData = {
     habits,
     logs: [],
     earnedTimeBank: 0,
     onboardingComplete: false,
     createdAt: new Date().toISOString(),
+    restDays,
   };
   saveUserData(data);
   return data;
+}
+
+export function isRestDay(data: UserData, date: Date = new Date()): boolean {
+  return (data.restDays || []).includes(date.getDay());
 }
 
 export function getTodayDate(): string {
@@ -76,21 +81,47 @@ export function deleteHabit(data: UserData, habitId: string): UserData {
   return data;
 }
 
+function dateToStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// A day keeps the streak alive if it scored > 20, or if it's a rest day
+// (rest days never break the streak, but only count toward it when logged).
 export function getStreak(data: UserData): number {
   let streak = 0;
   const today = new Date();
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const log = data.logs.find((l) => l.date === dateStr);
-    if (log && log.score > 20) { // arbitrary threshold for now
+    const log = data.logs.find((l) => l.date === dateToStr(d));
+    const active = log && log.score > 20;
+    if (active) {
       streak++;
+    } else if (isRestDay(data, d)) {
+      continue; // freeze: neither counts nor breaks
     } else if (i > 0) {
       break;
     }
   }
   return streak;
+}
+
+export function getBestStreak(data: UserData): number {
+  if (data.logs.length === 0) return 0;
+  const start = new Date(data.createdAt);
+  const today = new Date();
+  let best = 0;
+  let current = 0;
+  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+    const log = data.logs.find((l) => l.date === dateToStr(d));
+    if (log && log.score > 20) {
+      current++;
+      best = Math.max(best, current);
+    } else if (!isRestDay(data, d)) {
+      current = 0;
+    }
+  }
+  return Math.max(best, getStreak(data));
 }
 
 export function getLast7Days(data: UserData): { date: string; score: number }[] {

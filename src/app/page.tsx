@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
-import { getUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getLast7Days, upsertHabit, deleteHabit } from '../lib/store';
+import { getUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
 
 const EMOJI_PRESETS = ['💻', '🏋️', '📚', '🧘', '🏃', '🎮', '🍿', '🏀', '🎧', '😴', '🎨', '🚗'];
@@ -30,6 +30,7 @@ export default function Home() {
   const [timer, setTimer] = useState<{ habitId: string; type: 'grind' | 'glow'; startedAt: number } | null>(null);
   const [now, setNow] = useState(Date.now());
   const [nudge, setNudge] = useState<string | null>(null);
+  const [streakOpen, setStreakOpen] = useState(false);
   // Highest chunk we've already nudged about — prevents repeat fires while a timer runs
   const lastNudgedChunk = useRef(0);
 
@@ -153,7 +154,8 @@ export default function Home() {
     }
     item.value += amount;
     
-    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, data.habits);
+    const restToday = isRestDay(data);
+    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, data.habits, restToday);
     newLog.earnedTimeDelta = metrics.earnedTimeDelta;
     newLog.score = metrics.scoreInfo.score;
 
@@ -162,8 +164,8 @@ export default function Home() {
       const earned = Math.round(amount * (habit.earnRate || 0));
       showToast(`🔥 Awesome! +${earned} min earned`, 'grind');
     } else {
-      const spent = Math.round(amount * (habit.costRate || 0));
-      showToast(`🎮 Enjoy! -${spent} min spent`, 'glow');
+      const spent = Math.round(amount * (habit.costRate || 0) * (restToday ? 0.5 : 1));
+      showToast(restToday ? `🦥 Rest day deal! -${spent} min spent` : `🎮 Enjoy! -${spent} min spent`, 'glow');
     }
 
     setTodayLog(newLog);
@@ -227,7 +229,7 @@ export default function Home() {
       glowLogs: todayLog.glowLogs.filter(l => l.habitId !== id),
     };
     const newData = deleteHabit({ ...data }, id);
-    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, newData.habits);
+    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, newData.habits, isRestDay(newData));
     newLog.earnedTimeDelta = metrics.earnedTimeDelta;
     newLog.score = metrics.scoreInfo.score;
     setTodayLog(newLog);
@@ -237,7 +239,7 @@ export default function Home() {
   };
 
   const recalcToday = (userData: UserData) => {
-    const metrics = calculateDailyMetrics(todayLog.grindLogs, todayLog.glowLogs, userData.habits);
+    const metrics = calculateDailyMetrics(todayLog.grindLogs, todayLog.glowLogs, userData.habits, isRestDay(userData));
     const newLog = { ...todayLog, earnedTimeDelta: metrics.earnedTimeDelta, score: metrics.scoreInfo.score };
     setTodayLog(newLog);
     saveDayLog(newLog, userData);
@@ -245,6 +247,7 @@ export default function Home() {
 
   const streak = getStreak(data);
   const week = getLast7Days(data);
+  const restToday = isRestDay(data);
   const bankMins = Math.floor(data.earnedTimeBank);
   const isBankPositive = bankMins >= 0;
   
@@ -267,12 +270,14 @@ export default function Home() {
       <header className="header">
         <div>
           <h1 className="logo">GetDone.</h1>
-          <p className="subtitle">Done for today. Go be yourself.</p>
+          <p className="subtitle">
+            {restToday ? 'Rest day — glow is 50% off 🦥' : 'Done for today. Go be yourself.'}
+          </p>
         </div>
-        <div className="streak">
+        <button className="streak" onClick={() => setStreakOpen(true)}>
           <span className="streak-icon">🔥</span>
           <span className="streak-count">{streak}</span>
-        </div>
+        </button>
       </header>
 
       <section className="time-bank-widget">
@@ -412,6 +417,62 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Streak history — Duolingo-style month calendar */}
+      {streakOpen && (
+        <div className="modal-overlay" onClick={() => setStreakOpen(false)}>
+          <div className="modal streak-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Your streak</h3>
+
+            <div className="streak-stats">
+              <div className="streak-stat">
+                <span className="streak-stat-value">🔥 {streak}</span>
+                <span className="streak-stat-label">Current</span>
+              </div>
+              <div className="streak-stat">
+                <span className="streak-stat-value">🏆 {getBestStreak(data)}</span>
+                <span className="streak-stat-label">Best</span>
+              </div>
+            </div>
+
+            <div className="calendar">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                <div key={`h${i}`} className="cal-head">{d}</div>
+              ))}
+              {(() => {
+                const today = new Date();
+                const first = new Date(today.getFullYear(), today.getMonth(), 1);
+                const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                const cells = [];
+                for (let i = 0; i < first.getDay(); i++) {
+                  cells.push(<div key={`e${i}`} />);
+                }
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const d = new Date(today.getFullYear(), today.getMonth(), day);
+                  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const log = data.logs.find(l => l.date === dateStr);
+                  const active = log && log.score > 20;
+                  const rest = (data.restDays || []).includes(d.getDay());
+                  const future = d > today;
+                  const isToday = day === today.getDate();
+                  cells.push(
+                    <div key={day} className={`cal-day ${active ? 'active' : ''} ${rest && !active ? 'rest' : ''} ${future ? 'future' : ''} ${isToday ? 'today' : ''}`}>
+                      {active ? '🔥' : rest && !future ? '🦥' : day}
+                    </div>
+                  );
+                }
+                return cells;
+              })()}
+            </div>
+
+            <p className="streak-hint">
+              🦥 Rest days never break your streak.
+            </p>
+
+            <button className="btn-primary" onClick={() => setStreakOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
 
       {/* Break nudge — full-screen moment, not a passing toast */}
       {nudge && (
