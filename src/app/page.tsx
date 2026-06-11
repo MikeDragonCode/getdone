@@ -301,10 +301,11 @@ export default function Home() {
       </section>
 
       <section className="weekly-rhythm">
-        {week.map((d, i) => {
+        {/* Today first, going back in time — a streak burns left to right */}
+        {week.slice().reverse().map((d, i) => {
           const dayLetter = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(d.date + 'T00:00').getDay()];
           const active = d.score > 20;
-          const isToday = i === week.length - 1;
+          const isToday = i === 0;
           return (
             <div key={d.date} className="rhythm-day">
               <div className={`rhythm-dot ${active ? 'active' : ''} ${isToday ? 'today' : ''}`}>
@@ -333,7 +334,7 @@ export default function Home() {
                     <div className="habit-info">
                       <div className="habit-name">{habit.name}</div>
                       <div className="habit-rate">
-                        Earn <span className="rate-pill">{habit.valueType === 'duration' ? `${habit.earnRate! * 60}m` : `${habit.earnRate}m`}</span> {habit.valueType === 'duration' ? 'per hr' : 'per done'}
+                        Earn <span className="rate-value">{habit.valueType === 'duration' ? `${habit.earnRate! * 60}` : `${habit.earnRate}`}</span><span className="dot dot-glow rate-dot"></span> {habit.valueType === 'duration' ? 'per hr' : 'per done'}
                       </div>
                     </div>
                     <button className="btn-edit" onClick={() => openModal('grind', habit)} aria-label="Edit habit">✎</button>
@@ -383,7 +384,7 @@ export default function Home() {
                     <div className="habit-info">
                       <div className="habit-name">{habit.name}</div>
                       <div className="habit-rate">
-                        Cost <span className="rate-pill">{habit.costRate}x</span>
+                        Cost <span className="rate-value">{habit.costRate}x</span><span className="dot dot-glow rate-dot"></span>
                       </div>
                     </div>
                     <button className="btn-edit" onClick={() => openModal('glow', habit)} aria-label="Edit habit">✎</button>
@@ -478,8 +479,8 @@ export default function Home() {
       {nudge && (
         <div className="modal-overlay nudge-overlay" onClick={() => setNudge(null)}>
           <div className="nudge-card" onClick={(e) => e.stopPropagation()}>
-            <div className="nudge-emoji">🛋</div>
-            <h2 className="nudge-title">Time to unwind</h2>
+            <div className="nudge-emoji">😮‍💨</div>
+            <h2 className="nudge-title">Time to exhale</h2>
             <p className="nudge-text">{nudge}</p>
             <button className="btn-primary nudge-btn" onClick={() => setNudge(null)}>Got it</button>
           </div>
