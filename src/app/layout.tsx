@@ -8,6 +8,9 @@ export const metadata: Metadata = {
     title: "GetDone",
     statusBarStyle: "black-translucent",
   },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

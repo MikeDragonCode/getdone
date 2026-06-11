@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
-import { getUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, upsertHabit, deleteHabit } from '../lib/store';
+import { getUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getLast7Days, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
 
 const EMOJI_PRESETS = ['💻', '🏋️', '📚', '🧘', '🏃', '🎮', '🍿', '🏀', '🎧', '😴', '🎨', '🚗'];
@@ -29,6 +29,9 @@ export default function Home() {
   const [form, setForm] = useState({ name: '', emoji: '', valueType: 'duration' as 'duration' | 'counter', rate: '' });
   const [timer, setTimer] = useState<{ habitId: string; type: 'grind' | 'glow'; startedAt: number } | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [nudge, setNudge] = useState<string | null>(null);
+  // Highest chunk we've already nudged about — prevents repeat fires while a timer runs
+  const lastNudgedChunk = useRef(0);
 
   useEffect(() => {
     let userData = getUserData();
@@ -71,6 +74,29 @@ export default function Home() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [timer]);
+
+  const triggerNudge = (bankedMins: number) => {
+    const msg = `You've banked ${bankedMins} min. Go be yourself.`;
+    setNudge(msg);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('GetDone', { body: `🛋 Time to unwind — ${msg}` });
+    }
+  };
+
+  // While a grind timer runs, project the bank forward and nudge live —
+  // don't wait for the user to press Stop
+  useEffect(() => {
+    if (!timer || timer.type !== 'grind' || !data) return;
+    const habit = data.habits.find(h => h.id === timer.habitId);
+    if (!habit?.earnRate || habit.valueType !== 'duration') return;
+    const projected = data.earnedTimeBank + ((now - timer.startedAt) / 60000) * habit.earnRate;
+    const baseChunk = Math.floor(Math.max(0, data.earnedTimeBank) / BREAK_CHUNK_MINS);
+    const chunk = Math.floor(Math.max(0, projected) / BREAK_CHUNK_MINS);
+    if (chunk > baseChunk && chunk > lastNudgedChunk.current) {
+      lastNudgedChunk.current = chunk;
+      triggerNudge(chunk * BREAK_CHUNK_MINS);
+    }
+  }, [now]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showToast = (message: string, type: 'grind' | 'glow') => {
     const id = Date.now() + Math.random();
@@ -131,12 +157,12 @@ export default function Home() {
     newLog.earnedTimeDelta = metrics.earnedTimeDelta;
     newLog.score = metrics.scoreInfo.score;
 
-    // Show toast
+    // Show toast (whole minutes — 3.75 reads as noise, 4 reads as a reward)
     if (type === 'grind') {
-      const earned = habit.valueType === 'duration' ? amount * (habit.earnRate || 0) : amount * (habit.earnRate || 0);
+      const earned = Math.round(amount * (habit.earnRate || 0));
       showToast(`🔥 Awesome! +${earned} min earned`, 'grind');
     } else {
-      const spent = habit.valueType === 'duration' ? amount * (habit.costRate || 0) : amount * (habit.costRate || 0);
+      const spent = Math.round(amount * (habit.costRate || 0));
       showToast(`🎮 Enjoy! -${spent} min spent`, 'glow');
     }
 
@@ -150,13 +176,9 @@ export default function Home() {
     if (type === 'grind' && newData) {
       const before = Math.floor(Math.max(0, bankBefore) / BREAK_CHUNK_MINS);
       const after = Math.floor(Math.max(0, newData.earnedTimeBank) / BREAK_CHUNK_MINS);
-      if (after > before) {
-        const earned = after * BREAK_CHUNK_MINS;
-        const msg = `🛋 Time to unwind — you've banked ${earned} min. Go be yourself.`;
-        showToast(msg, 'glow');
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('GetDone', { body: msg });
-        }
+      if (after > before && after > lastNudgedChunk.current) {
+        lastNudgedChunk.current = after;
+        triggerNudge(after * BREAK_CHUNK_MINS);
       }
     }
   };
@@ -222,6 +244,7 @@ export default function Home() {
   };
 
   const streak = getStreak(data);
+  const week = getLast7Days(data);
   const bankMins = Math.floor(data.earnedTimeBank);
   const isBankPositive = bankMins >= 0;
   
@@ -270,6 +293,22 @@ export default function Home() {
         <div className={`bank-status ${isBankPositive ? (bankMins > 0 ? 'status-positive' : 'status-neutral') : 'status-negative'}`}>
           {isBankPositive ? (bankMins > 0 ? 'You earned it ✨' : 'Time to grind') : 'In Debt ⚠️'}
         </div>
+      </section>
+
+      <section className="weekly-rhythm">
+        {week.map((d, i) => {
+          const dayLetter = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(d.date + 'T00:00').getDay()];
+          const active = d.score > 20;
+          const isToday = i === week.length - 1;
+          return (
+            <div key={d.date} className="rhythm-day">
+              <div className={`rhythm-dot ${active ? 'active' : ''} ${isToday ? 'today' : ''}`}>
+                {active ? '🔥' : ''}
+              </div>
+              <span className="rhythm-label">{dayLetter}</span>
+            </div>
+          );
+        })}
       </section>
 
       <section className="habits-container">
@@ -373,6 +412,18 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Break nudge — full-screen moment, not a passing toast */}
+      {nudge && (
+        <div className="modal-overlay nudge-overlay" onClick={() => setNudge(null)}>
+          <div className="nudge-card" onClick={(e) => e.stopPropagation()}>
+            <div className="nudge-emoji">🛋</div>
+            <h2 className="nudge-title">Time to unwind</h2>
+            <p className="nudge-text">{nudge}</p>
+            <button className="btn-primary nudge-btn" onClick={() => setNudge(null)}>Got it</button>
+          </div>
+        </div>
+      )}
 
       {/* Edit/Add Habit Modal */}
       {modal && (

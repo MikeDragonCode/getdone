@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HabitItem } from '../../lib/types';
 import { initUserData } from '../../lib/store';
 
@@ -43,6 +43,11 @@ export default function Onboarding() {
 
   const [customName, setCustomName] = useState('');
   const [customEmoji, setCustomEmoji] = useState('✨');
+
+  // Each step starts from the top — prevents the page "jumping" mid-scroll
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   const handleComplete = () => {
     const finalHabits: HabitItem[] = [
