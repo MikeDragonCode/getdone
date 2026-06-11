@@ -112,7 +112,19 @@ export default function Onboarding() {
   // Keep list order stable while toggling — reordering makes the list jump under the user's finger
 
   return (
-    <main className="container" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', minHeight: '100vh' }}>
+    // Top-aligned layout (except intro): centered flex re-centers everything on any
+    // height change, which reads as the page "jumping" on first taps. 100dvh tracks
+    // the mobile browser chrome instead of jumping when the address bar hides.
+    <main
+      className="container"
+      style={{
+        justifyContent: step === 1 ? 'center' : 'flex-start',
+        alignItems: 'center',
+        textAlign: 'center',
+        minHeight: '100dvh',
+        paddingTop: step === 1 ? undefined : '3rem',
+      }}
+    >
       
       {step === 1 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'slideUpFade 0.5s ease' }}>
@@ -136,7 +148,7 @@ export default function Onboarding() {
           <h2>What is your <span style={{ color: 'var(--grind-color)' }}>Grind</span>?</h2>
           <p style={{ color: 'var(--text-muted)' }}>Select the hard things that earn you time.</p>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50vh', overflowY: 'auto', paddingRight: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50dvh', overflowY: 'auto', paddingRight: '10px' }}>
             {grindOptions.map(h => (
               <div 
                 key={h.id} 
@@ -194,7 +206,7 @@ export default function Onboarding() {
           <h2>What is your <span style={{ color: 'var(--glow-color)' }}>Glow</span>?</h2>
           <p style={{ color: 'var(--text-muted)' }}>Select the ways you want to unwind.</p>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50vh', overflowY: 'auto', paddingRight: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50dvh', overflowY: 'auto', paddingRight: '10px' }}>
             {glowOptions.map(h => (
               <div 
                 key={h.id} 

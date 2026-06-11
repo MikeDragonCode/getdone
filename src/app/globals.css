@@ -44,7 +44,7 @@ body {
   max-width: 600px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;

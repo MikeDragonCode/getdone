@@ -124,6 +124,20 @@ export default function Home() {
     }, 3000);
   };
 
+  // Hooks must run unconditionally — keep every useMemo above the early return
+  const bankMins = data ? Math.floor(data.earnedTimeBank) : 0;
+
+  // Glow suggestion: random pick among habits that fit the current time of day
+  const suggestion = useMemo(() => {
+    if (!data || bankMins < 15) return null;
+    const win = currentWindow();
+    const candidates = data.habits.filter(
+      h => h.type === 'glow' && (!h.window || h.window === 'any' || h.window === win)
+    );
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }, [bankMins, data]);
+
   if (!mounted || !data || !todayLog) return null;
 
   const grindHabits = data.habits.filter(h => h.type === 'grind');
@@ -266,19 +280,6 @@ export default function Home() {
   const streak = getStreak(data);
   const week = getLast7Days(data);
   const restToday = isRestDay(data);
-  const bankMins = Math.floor(data.earnedTimeBank);
-
-  // Glow suggestion: random pick among habits that fit the current time of day
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const suggestion = useMemo(() => {
-    if (bankMins < 15) return null;
-    const win = currentWindow();
-    const candidates = data.habits.filter(
-      h => h.type === 'glow' && (!h.window || h.window === 'any' || h.window === win)
-    );
-    if (candidates.length === 0) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }, [bankMins, data.habits]);
 
   const dismissRecap = () => {
     if (!recap) return;
