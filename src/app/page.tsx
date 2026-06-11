@@ -289,9 +289,7 @@ export default function Home() {
                     <div className="habit-info">
                       <div className="habit-name">{habit.name}</div>
                       <div className="habit-rate">
-                        {habit.valueType === 'duration'
-                          ? `Earn: ${habit.earnRate! * 60}m per hr`
-                          : `Earn: ${habit.earnRate}m per done`}
+                        Earn <span className="rate-pill">{habit.valueType === 'duration' ? `${habit.earnRate! * 60}m` : `${habit.earnRate}m`}</span> {habit.valueType === 'duration' ? 'per hr' : 'per done'}
                       </div>
                     </div>
                     <button className="btn-edit" onClick={() => openModal('grind', habit)} aria-label="Edit habit">✎</button>
@@ -299,15 +297,15 @@ export default function Home() {
                   <div className="habit-controls">
                     {habit.valueType === 'duration' ? (
                       <>
-                        <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 15)}>+15m</button>
-                        <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 60)}>+1h</button>
                         {timer?.habitId === habit.id ? (
-                          <button className="btn-increment timer-active grind" onClick={stopTimer}>
+                          <button className="btn-timer-main timer-active grind" onClick={stopTimer}>
                             ■ {formatElapsed(now - timer.startedAt)}
                           </button>
                         ) : (
-                          <button className="btn-increment btn-timer" onClick={() => startTimer(habit.id, 'grind')} disabled={!!timer}>▶</button>
+                          <button className="btn-timer-main grind" onClick={() => startTimer(habit.id, 'grind')} disabled={!!timer}>▶ Start</button>
                         )}
+                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'grind', 15)}>+15m</button>
+                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'grind', 60)}>+1h</button>
                       </>
                     ) : (
                       <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 1)}>+1 Done</button>
@@ -341,7 +339,7 @@ export default function Home() {
                     <div className="habit-info">
                       <div className="habit-name">{habit.name}</div>
                       <div className="habit-rate">
-                        Cost: {habit.costRate}x
+                        Cost <span className="rate-pill">{habit.costRate}x</span>
                       </div>
                     </div>
                     <button className="btn-edit" onClick={() => openModal('glow', habit)} aria-label="Edit habit">✎</button>
@@ -349,15 +347,15 @@ export default function Home() {
                   <div className="habit-controls">
                     {habit.valueType === 'duration' ? (
                       <>
-                        <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 15)}>-15m</button>
-                        <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 60)}>-1h</button>
                         {timer?.habitId === habit.id ? (
-                          <button className="btn-increment timer-active glow" onClick={stopTimer}>
+                          <button className="btn-timer-main timer-active glow" onClick={stopTimer}>
                             ■ {formatElapsed(now - timer.startedAt)}
                           </button>
                         ) : (
-                          <button className="btn-increment btn-timer" onClick={() => startTimer(habit.id, 'glow')} disabled={!!timer}>▶</button>
+                          <button className="btn-timer-main glow" onClick={() => startTimer(habit.id, 'glow')} disabled={!!timer}>▶ Start</button>
                         )}
+                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'glow', 15)}>-15m</button>
+                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'glow', 60)}>-1h</button>
                       </>
                     ) : (
                       <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 1)}>-1 Done</button>
@@ -387,11 +385,14 @@ export default function Home() {
             <div className="form-row">
               <div className="form-field emoji-field">
                 <label>Emoji</label>
-                <input
+                <select
                   value={form.emoji}
                   onChange={(e) => setForm({ ...form, emoji: e.target.value })}
-                  maxLength={4}
-                />
+                >
+                  {/* Keep the current emoji selectable even if it's not a preset */}
+                  {!EMOJI_PRESETS.includes(form.emoji) && <option value={form.emoji}>{form.emoji}</option>}
+                  {EMOJI_PRESETS.map(em => <option key={em} value={em}>{em}</option>)}
+                </select>
               </div>
               <div className="form-field">
                 <label>Name</label>
@@ -402,18 +403,6 @@ export default function Home() {
                   autoFocus
                 />
               </div>
-            </div>
-
-            <div className="emoji-presets">
-              {EMOJI_PRESETS.map(em => (
-                <button
-                  key={em}
-                  className={`emoji-preset ${form.emoji === em ? 'active' : ''}`}
-                  onClick={() => setForm({ ...form, emoji: em })}
-                >
-                  {em}
-                </button>
-              ))}
             </div>
 
             <div className="form-field">

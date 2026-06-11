@@ -150,19 +150,16 @@ body {
   letter-spacing: 0.1em;
 }
 
+/* Status is a statement, not a button — plain bold text in the logo's voice */
 .bank-status {
-  padding: 0.5rem 1.25rem;
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
-  font-weight: 700;
-  background: var(--bg-surface);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
-.status-positive { color: var(--glow-color); border: 1px solid var(--glow-border); }
-.status-negative { color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
-.status-neutral { color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
+.status-positive { color: var(--glow-color); text-shadow: 0 0 20px rgba(168, 85, 247, 0.35); }
+.status-negative { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.35); }
+.status-neutral { color: var(--text-muted); }
 
 /* Toasts */
 .toast-container {
@@ -218,13 +215,14 @@ body {
 }
 
 .column-title {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text-muted);
+  color: var(--text-main);
 }
 
 .dot {
@@ -273,7 +271,8 @@ body {
 }
 
 .habit-name {
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   font-size: 0.95rem;
   color: var(--text-main);
 }
@@ -345,60 +344,65 @@ body {
 .btn-add-habit.grind-add:hover { border-color: var(--grind-color); color: var(--grind-color); background: var(--grind-bg); }
 .btn-add-habit.glow-add:hover { border-color: var(--glow-color); color: var(--glow-color); background: var(--glow-bg); }
 
-/* Timer */
-.btn-timer {
-  flex: 0 0 44px;
+/* Timer — primary action on duration habits */
+.btn-timer-main {
+  flex: 2;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-variant-numeric: tabular-nums;
 }
 
-.btn-timer:disabled {
+.btn-timer-main.grind {
+  background: var(--grind-bg);
+  border: 1px solid var(--grind-border);
+  color: var(--grind-color);
+}
+.btn-timer-main.grind:hover:not(:disabled) { border-color: var(--grind-color); }
+
+.btn-timer-main.glow {
+  background: var(--glow-bg);
+  border: 1px solid var(--glow-border);
+  color: var(--glow-color);
+}
+.btn-timer-main.glow:hover:not(:disabled) { border-color: var(--glow-color); }
+
+.btn-timer-main:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.btn-increment.timer-active {
-  font-variant-numeric: tabular-nums;
+.btn-timer-main.timer-active {
   animation: timerPulse 2s ease-in-out infinite;
 }
 
-.btn-increment.timer-active.grind {
-  border-color: var(--grind-color);
-  color: var(--grind-color);
-  background: var(--grind-bg);
-}
-
-.btn-increment.timer-active.glow {
-  border-color: var(--glow-color);
-  color: var(--glow-color);
-  background: var(--glow-bg);
-}
+.btn-timer-main.timer-active.grind { border-color: var(--grind-color); }
+.btn-timer-main.timer-active.glow { border-color: var(--glow-color); }
 
 @keyframes timerPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
 
-/* Emoji presets */
-.emoji-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+.btn-secondary-log {
+  flex: 1;
 }
 
-.emoji-preset {
-  font-size: 1.25rem;
-  padding: 0.35rem;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.emoji-preset:hover { background: var(--bg-surface-hover); }
-
-.emoji-preset.active {
+/* Rate pill — earned minutes are glow currency */
+.rate-pill {
+  display: inline-block;
   background: var(--glow-bg);
-  border-color: var(--glow-color);
+  border: 1px solid var(--glow-border);
+  color: var(--glow-color);
+  border-radius: var(--radius-full);
+  padding: 0 0.45rem;
+  font-weight: 700;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Modal */
@@ -434,8 +438,9 @@ body {
 }
 
 .modal-title {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .form-row {
@@ -461,7 +466,8 @@ body {
   letter-spacing: 0.05em;
 }
 
-.form-field input {
+.form-field input,
+.form-field select {
   background: var(--bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-main);
@@ -472,7 +478,15 @@ body {
   transition: var(--transition);
 }
 
-.form-field input:focus { border-color: var(--glow-color); }
+.form-field select {
+  appearance: none;
+  cursor: pointer;
+  text-align: center;
+  font-size: 1.25rem;
+}
+
+.form-field input:focus,
+.form-field select:focus { border-color: var(--glow-color); }
 
 .segmented {
   display: flex;

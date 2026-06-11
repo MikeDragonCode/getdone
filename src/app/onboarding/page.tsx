@@ -30,8 +30,8 @@ const DEFAULT_GLOW: HabitItem[] = [
   { id: 'gl10', name: 'Doing Absolutely Nothing', emoji: '🦥', type: 'glow', valueType: 'duration', costRate: 1.0 },
 ];
 
-const EMOJI_PRESETS_GRIND = ['💻', '🏋️', '📚', '🧹', '🚀', '🧘', '🏃', '✍️', '🎯', '🔧'];
-const EMOJI_PRESETS_GLOW = ['🎮', '🍿', '🏀', '🎧', '😴', '🍻', '🛹', '🎨', '🚗', '🦥'];
+const EMOJI_PRESETS_GRIND = ['✨', '💻', '🏋️', '📚', '🧹', '🚀', '🧘', '🏃', '✍️', '🎯', '🔧'];
+const EMOJI_PRESETS_GLOW = ['✨', '🎮', '🍿', '🏀', '🎧', '😴', '🍻', '🛹', '🎨', '🚗', '🦥'];
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
@@ -49,7 +49,19 @@ export default function Onboarding() {
       ...grindOptions.filter(h => selectedGrind.includes(h.id)),
       ...glowOptions.filter(h => selectedGlow.includes(h.id))
     ];
-    
+
+    // A typed-but-not-added custom glow shouldn't be lost on Finish
+    if (customName.trim()) {
+      finalHabits.push({
+        id: `custom_${Date.now()}`,
+        name: customName.trim(),
+        emoji: customEmoji,
+        type: 'glow',
+        valueType: 'duration',
+        costRate: 1.0,
+      });
+    }
+
     if (finalHabits.filter(h => h.type === 'grind').length === 0) finalHabits.push(DEFAULT_GRIND[0]);
     if (finalHabits.filter(h => h.type === 'glow').length === 0) finalHabits.push(DEFAULT_GLOW[0]);
 
@@ -137,29 +149,14 @@ export default function Onboarding() {
             ))}
             
             {/* Custom Add */}
-            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-              {EMOJI_PRESETS_GRIND.map(em => (
-                <button
-                  key={em}
-                  onClick={() => setCustomEmoji(em)}
-                  style={{
-                    fontSize: '1.25rem', padding: '0.35rem', background: customEmoji === em ? 'var(--grind-bg)' : 'transparent',
-                    border: `1px solid ${customEmoji === em ? 'var(--grind-color)' : 'transparent'}`,
-                    borderRadius: 'var(--radius-sm)', cursor: 'pointer'
-                  }}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                placeholder="😀"
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <select
                 value={customEmoji}
                 onChange={e => setCustomEmoji(e.target.value)}
-                style={{ width: '3rem', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)' }}
-              />
+                style={{ width: '3.5rem', textAlign: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)', appearance: 'none', cursor: 'pointer' }}
+              >
+                {EMOJI_PRESETS_GRIND.map(em => <option key={em} value={em}>{em}</option>)}
+              </select>
               <input 
                 type="text" 
                 placeholder="Add custom grind..." 
@@ -177,8 +174,8 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <button 
-            onClick={() => setStep(3)}
+          <button
+            onClick={() => { if (customName.trim()) addCustom('grind'); setStep(3); }}
             style={{ padding: '1rem 2rem', background: 'var(--grind-color)', color: 'white', borderRadius: 'var(--radius-full)', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', border: 'none', marginTop: '1rem' }}
           >
             Next ({selectedGrind.length} selected)
@@ -210,29 +207,14 @@ export default function Onboarding() {
             ))}
             
             {/* Custom Add */}
-            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-              {EMOJI_PRESETS_GLOW.map(em => (
-                <button
-                  key={em}
-                  onClick={() => setCustomEmoji(em)}
-                  style={{
-                    fontSize: '1.25rem', padding: '0.35rem', background: customEmoji === em ? 'var(--glow-bg)' : 'transparent',
-                    border: `1px solid ${customEmoji === em ? 'var(--glow-color)' : 'transparent'}`,
-                    borderRadius: 'var(--radius-sm)', cursor: 'pointer'
-                  }}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                placeholder="😀"
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <select
                 value={customEmoji}
                 onChange={e => setCustomEmoji(e.target.value)}
-                style={{ width: '3rem', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)' }}
-              />
+                style={{ width: '3.5rem', textAlign: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)', appearance: 'none', cursor: 'pointer' }}
+              >
+                {EMOJI_PRESETS_GLOW.map(em => <option key={em} value={em}>{em}</option>)}
+              </select>
               <input 
                 type="text" 
                 placeholder="Add custom glow..." 
