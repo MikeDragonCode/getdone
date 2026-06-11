@@ -10,6 +10,8 @@ export interface HabitItem {
   // For glow: How many minutes it costs per 1 unit (minute or count)
   // e.g. 1 min PS5 = 1 min spent => costRate = 1.0
   costRate?: number;
+  // When this glow fits the day — used by suggestions ("popcorn at noon" filter)
+  window?: 'any' | 'morning' | 'day' | 'evening';
 }
 
 export interface ItemLog {
@@ -34,6 +36,8 @@ export interface UserData {
   // Days of week (0=Sun..6=Sat) the user doesn't grind: glow is discounted
   // and the streak doesn't break. Supports 5/2, 2/2, part-time schedules.
   restDays?: number[];
+  // Last date (YYYY-MM-DD) the end-of-day recap was shown for
+  lastRecapDate?: string;
 }
 
 export interface DayScore {

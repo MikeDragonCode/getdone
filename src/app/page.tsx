@@ -1,9 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Flame, Trophy, Play, Square, Pencil, Plus, Wind, Moon, Sparkles } from 'lucide-react';
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
-import { getUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
+import { getUserData, saveUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
+
+const currentWindow = (): 'morning' | 'day' | 'evening' => {
+  const h = new Date().getHours();
+  return h < 12 ? 'morning' : h < 18 ? 'day' : 'evening';
+};
 
 const EMOJI_PRESETS = ['💻', '🏋️', '📚', '🧘', '🏃', '🎮', '🍿', '🏀', '🎧', '😴', '🎨', '🚗'];
 
@@ -26,7 +33,8 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: 'grind' | 'glow' }[]>([]);
   const [modal, setModal] = useState<{ type: 'grind' | 'glow'; habit: HabitItem | null } | null>(null);
-  const [form, setForm] = useState({ name: '', emoji: '', valueType: 'duration' as 'duration' | 'counter', rate: '' });
+  const [form, setForm] = useState({ name: '', emoji: '', valueType: 'duration' as 'duration' | 'counter', rate: '', window: 'any' as NonNullable<HabitItem['window']> });
+  const [recap, setRecap] = useState<DayLog | null>(null);
   const [timer, setTimer] = useState<{ habitId: string; type: 'grind' | 'glow'; startedAt: number } | null>(null);
   const [now, setNow] = useState(Date.now());
   const [nudge, setNudge] = useState<string | null>(null);
@@ -60,6 +68,15 @@ export default function Home() {
     }
     setTodayLog(log);
     setMounted(true);
+
+    // End of day recap: show the most recent past day once
+    const prior = userData.logs
+      .filter((l) => l.date < date && l.score > 0)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .pop();
+    if (prior && userData.lastRecapDate !== prior.date) {
+      setRecap(prior);
+    }
   }, []);
 
   // Restore a running timer (it survives page refresh via localStorage)
@@ -162,10 +179,10 @@ export default function Home() {
     // Show toast (whole minutes — 3.75 reads as noise, 4 reads as a reward)
     if (type === 'grind') {
       const earned = Math.round(amount * (habit.earnRate || 0));
-      showToast(`🔥 Awesome! +${earned} min earned`, 'grind');
+      showToast(`Nice! +${earned} min earned`, 'grind');
     } else {
       const spent = Math.round(amount * (habit.costRate || 0) * (restToday ? 0.5 : 1));
-      showToast(restToday ? `🦥 Rest day deal! -${spent} min spent` : `🎮 Enjoy! -${spent} min spent`, 'glow');
+      showToast(restToday ? `Rest day deal! -${spent} min spent` : `Enjoy! -${spent} min spent`, 'glow');
     }
 
     setTodayLog(newLog);
@@ -191,9 +208,9 @@ export default function Home() {
       const rate = habit.type === 'grind'
         ? (habit.valueType === 'duration' ? (habit.earnRate || 0) * 60 : habit.earnRate || 0)
         : (habit.valueType === 'duration' ? habit.costRate || 1 : habit.costRate || 0);
-      setForm({ name: habit.name, emoji: habit.emoji, valueType: habit.valueType, rate: String(rate) });
+      setForm({ name: habit.name, emoji: habit.emoji, valueType: habit.valueType, rate: String(rate), window: habit.window || 'any' });
     } else {
-      setForm({ name: '', emoji: type === 'grind' ? '🔥' : '✨', valueType: 'duration', rate: type === 'grind' ? '15' : '1' });
+      setForm({ name: '', emoji: type === 'grind' ? '🔥' : '✨', valueType: 'duration', rate: type === 'grind' ? '15' : '1', window: 'any' });
     }
     setModal({ type, habit });
   };
@@ -212,6 +229,7 @@ export default function Home() {
       habit.earnRate = form.valueType === 'duration' ? rateNum / 60 : rateNum;
     } else {
       habit.costRate = rateNum;
+      habit.window = form.window;
     }
     const newData = upsertHabit({ ...data }, habit);
     setData({ ...newData });
@@ -249,6 +267,26 @@ export default function Home() {
   const week = getLast7Days(data);
   const restToday = isRestDay(data);
   const bankMins = Math.floor(data.earnedTimeBank);
+
+  // Glow suggestion: random pick among habits that fit the current time of day
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const suggestion = useMemo(() => {
+    if (bankMins < 15) return null;
+    const win = currentWindow();
+    const candidates = data.habits.filter(
+      h => h.type === 'glow' && (!h.window || h.window === 'any' || h.window === win)
+    );
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }, [bankMins, data.habits]);
+
+  const dismissRecap = () => {
+    if (!recap) return;
+    const d = { ...data, lastRecapDate: recap.date };
+    saveUserData(d);
+    setData(d);
+    setRecap(null);
+  };
   const isBankPositive = bankMins >= 0;
   
   // Bar represents two break-chunks (1 hour) so it visibly fills within a
@@ -275,7 +313,7 @@ export default function Home() {
           </p>
         </div>
         <button className="streak" onClick={() => setStreakOpen(true)}>
-          <span className="streak-icon">🔥</span>
+          <Flame size={22} className="streak-flame" fill="currentColor" />
           <span className="streak-count">{streak}</span>
         </button>
       </header>
@@ -296,9 +334,23 @@ export default function Home() {
         </div>
 
         <div className={`bank-status ${isBankPositive ? (bankMins > 0 ? 'status-positive' : 'status-neutral') : 'status-negative'}`}>
-          {isBankPositive ? (bankMins > 0 ? 'You earned it ✨' : 'Time to grind') : 'In Debt ⚠️'}
+          {isBankPositive ? (bankMins > 0 ? 'You earned it' : 'Time to grind') : 'In debt'}
         </div>
       </section>
+
+      {suggestion && (
+        <motion.section
+          className="suggestion"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Sparkles size={16} className="suggestion-icon" />
+          <span>
+            You&apos;ve got <b>{bankMins}m</b> — enough for {suggestion.emoji} <b>{suggestion.name}</b>
+          </span>
+        </motion.section>
+      )}
 
       <section className="weekly-rhythm">
         {/* Today first, going back in time — a streak burns left to right */}
@@ -309,7 +361,7 @@ export default function Home() {
           return (
             <div key={d.date} className="rhythm-day">
               <div className={`rhythm-dot ${active ? 'active' : ''} ${isToday ? 'today' : ''}`}>
-                {active ? '🔥' : ''}
+                {active && <Flame size={15} fill="currentColor" />}
               </div>
               <span className="rhythm-label">{dayLetter}</span>
             </div>
@@ -337,17 +389,17 @@ export default function Home() {
                         Earn <span className="rate-value">{habit.valueType === 'duration' ? `${habit.earnRate! * 60}` : `${habit.earnRate}`}</span><span className="dot dot-glow rate-dot"></span> {habit.valueType === 'duration' ? 'per hr' : 'per done'}
                       </div>
                     </div>
-                    <button className="btn-edit" onClick={() => openModal('grind', habit)} aria-label="Edit habit">✎</button>
+                    <button className="btn-edit" onClick={() => openModal('grind', habit)} aria-label="Edit habit"><Pencil size={13} /></button>
                   </div>
                   <div className="habit-controls">
                     {habit.valueType === 'duration' ? (
                       <>
                         {timer?.habitId === habit.id ? (
                           <button className="btn-timer-main timer-active grind" onClick={stopTimer}>
-                            ■ {formatElapsed(now - timer.startedAt)}
+                            <Square size={11} fill="currentColor" /> {formatElapsed(now - timer.startedAt)}
                           </button>
                         ) : (
-                          <button className="btn-timer-main grind" onClick={() => startTimer(habit.id, 'grind')} disabled={!!timer}>▶ Start</button>
+                          <button className="btn-timer-main grind" onClick={() => startTimer(habit.id, 'grind')} disabled={!!timer}><Play size={12} fill="currentColor" /> Start</button>
                         )}
                         <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'grind', 15)}>+15m</button>
                         <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'grind', 60)}>+1h</button>
@@ -364,7 +416,7 @@ export default function Home() {
                 </div>
               );
             })}
-            <button className="btn-add-habit grind-add" onClick={() => openModal('grind', null)}>+ Add activity</button>
+            <button className="btn-add-habit grind-add" onClick={() => openModal('grind', null)}><Plus size={14} /> Add activity</button>
           </div>
         </div>
 
@@ -387,17 +439,17 @@ export default function Home() {
                         Cost <span className="rate-value">{habit.costRate}x</span><span className="dot dot-glow rate-dot"></span>
                       </div>
                     </div>
-                    <button className="btn-edit" onClick={() => openModal('glow', habit)} aria-label="Edit habit">✎</button>
+                    <button className="btn-edit" onClick={() => openModal('glow', habit)} aria-label="Edit habit"><Pencil size={13} /></button>
                   </div>
                   <div className="habit-controls">
                     {habit.valueType === 'duration' ? (
                       <>
                         {timer?.habitId === habit.id ? (
                           <button className="btn-timer-main timer-active glow" onClick={stopTimer}>
-                            ■ {formatElapsed(now - timer.startedAt)}
+                            <Square size={11} fill="currentColor" /> {formatElapsed(now - timer.startedAt)}
                           </button>
                         ) : (
-                          <button className="btn-timer-main glow" onClick={() => startTimer(habit.id, 'glow')} disabled={!!timer}>▶ Start</button>
+                          <button className="btn-timer-main glow" onClick={() => startTimer(habit.id, 'glow')} disabled={!!timer}><Play size={12} fill="currentColor" /> Start</button>
                         )}
                         <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'glow', 15)}>-15m</button>
                         <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'glow', 60)}>-1h</button>
@@ -414,7 +466,7 @@ export default function Home() {
                 </div>
               );
             })}
-            <button className="btn-add-habit glow-add" onClick={() => openModal('glow', null)}>+ Add activity</button>
+            <button className="btn-add-habit glow-add" onClick={() => openModal('glow', null)}><Plus size={14} /> Add activity</button>
           </div>
         </div>
       </section>
@@ -427,11 +479,11 @@ export default function Home() {
 
             <div className="streak-stats">
               <div className="streak-stat">
-                <span className="streak-stat-value">🔥 {streak}</span>
+                <span className="streak-stat-value"><Flame size={20} fill="currentColor" className="icon-grind" /> {streak}</span>
                 <span className="streak-stat-label">Current</span>
               </div>
               <div className="streak-stat">
-                <span className="streak-stat-value">🏆 {getBestStreak(data)}</span>
+                <span className="streak-stat-value"><Trophy size={20} className="icon-glow" /> {getBestStreak(data)}</span>
                 <span className="streak-stat-label">Best</span>
               </div>
             </div>
@@ -458,7 +510,7 @@ export default function Home() {
                   const isToday = day === today.getDate();
                   cells.push(
                     <div key={day} className={`cal-day ${active ? 'active' : ''} ${rest && !active ? 'rest' : ''} ${future ? 'future' : ''} ${isToday ? 'today' : ''}`}>
-                      {active ? '🔥' : rest && !future ? '🦥' : day}
+                      {active ? <Flame size={13} fill="currentColor" className="icon-grind" /> : rest && !future ? <Moon size={11} /> : day}
                     </div>
                   );
                 }
@@ -467,7 +519,7 @@ export default function Home() {
             </div>
 
             <p className="streak-hint">
-              🦥 Rest days never break your streak.
+              <Moon size={12} /> Rest days never break your streak.
             </p>
 
             <button className="btn-primary" onClick={() => setStreakOpen(false)}>Close</button>
@@ -476,16 +528,72 @@ export default function Home() {
       )}
 
       {/* Break nudge — full-screen moment, not a passing toast */}
-      {nudge && (
-        <div className="modal-overlay nudge-overlay" onClick={() => setNudge(null)}>
-          <div className="nudge-card" onClick={(e) => e.stopPropagation()}>
-            <div className="nudge-emoji">😮‍💨</div>
-            <h2 className="nudge-title">Time to exhale</h2>
-            <p className="nudge-text">{nudge}</p>
-            <button className="btn-primary nudge-btn" onClick={() => setNudge(null)}>Got it</button>
+      <AnimatePresence>
+        {nudge && (
+          <div className="modal-overlay nudge-overlay" onClick={() => setNudge(null)}>
+            <motion.div
+              className="nudge-card"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            >
+              <motion.div
+                className="nudge-icon"
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+              >
+                <Wind size={48} />
+              </motion.div>
+              <h2 className="nudge-title">Time to exhale</h2>
+              <p className="nudge-text">{nudge}</p>
+              <button className="btn-primary nudge-btn" onClick={() => setNudge(null)}>Got it</button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* End of day recap */}
+      <AnimatePresence>
+        {recap && !nudge && (
+          <div className="modal-overlay nudge-overlay" onClick={dismissRecap}>
+            <motion.div
+              className="nudge-card recap-card"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            >
+              <div className="nudge-icon"><Sparkles size={44} /></div>
+              <h2 className="nudge-title">
+                {new Date(recap.date + 'T00:00').toLocaleDateString('en-US', { weekday: 'long' })}, closed.
+              </h2>
+              <div className="recap-stats">
+                <div className="recap-stat">
+                  <span className="recap-value icon-grind">{recap.grindLogs.length}</span>
+                  <span className="recap-label">Grind</span>
+                </div>
+                <div className="recap-stat">
+                  <span className="recap-value icon-glow">{recap.glowLogs.length}</span>
+                  <span className="recap-label">Glow</span>
+                </div>
+                <div className="recap-stat">
+                  <span className="recap-value">{recap.score}</span>
+                  <span className="recap-label">Score</span>
+                </div>
+              </div>
+              <p className="nudge-text">
+                {recap.earnedTimeDelta >= 0
+                  ? `You banked +${Math.round(recap.earnedTimeDelta)} min. Carried into today.`
+                  : `You treated yourself to ${Math.abs(Math.round(recap.earnedTimeDelta))} min. Worth it.`}
+              </p>
+              <button className="btn-primary nudge-btn" onClick={dismissRecap}>New day, let&apos;s go</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Edit/Add Habit Modal */}
       {modal && (
@@ -531,6 +639,23 @@ export default function Home() {
                 >✔ By times done</button>
               </div>
             </div>
+
+            {modal.type === 'glow' && (
+              <div className="form-field">
+                <label>When does it fit?</label>
+                <div className="segmented">
+                  {(['any', 'morning', 'day', 'evening'] as const).map(w => (
+                    <button
+                      key={w}
+                      className={form.window === w ? 'active' : ''}
+                      onClick={() => setForm({ ...form, window: w })}
+                    >
+                      {w === 'any' ? 'Any' : w === 'morning' ? 'Morning' : w === 'day' ? 'Day' : 'Evening'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="form-field">
               <label>

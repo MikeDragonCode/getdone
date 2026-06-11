@@ -415,6 +415,84 @@ body {
   vertical-align: middle;
 }
 
+/* Icon colors */
+.icon-grind { color: var(--grind-color); }
+.icon-glow { color: var(--glow-color); }
+.streak-flame { color: var(--grind-color); filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.5)); }
+.rhythm-dot.active { color: var(--grind-color); }
+.cal-day .lucide { vertical-align: middle; }
+
+/* Buttons with icons */
+.btn-timer-main,
+.btn-add-habit,
+.streak,
+.streak-stat-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.streak-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+/* Glow suggestion */
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--glow-bg);
+  border: 1px solid var(--glow-border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  margin-top: -1.25rem;
+}
+
+.suggestion-icon {
+  color: var(--glow-color);
+  flex-shrink: 0;
+}
+
+/* Recap */
+.recap-stats {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.recap-stat {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.recap-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.recap-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 /* Weekly Rhythm */
 .weekly-rhythm {
   display: flex;
@@ -568,7 +646,11 @@ body {
   animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.nudge-emoji { font-size: 3rem; }
+.nudge-icon {
+  color: var(--glow-color);
+  filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.5));
+  display: flex;
+}
 
 .nudge-title {
   font-size: 1.5rem;
