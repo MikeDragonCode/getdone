@@ -37,40 +37,48 @@ export function calculateDailyMetrics(
   let label = 'Log your day';
   let labelClass = 'label-empty';
 
+  // A "real" day needs volume: at least 30 banked minutes of grind
+  // (~2h of typical work). Without it, ratios are meaningless — 15 min of
+  // work + 4 min of gaming must not read as "Perfect Balance".
+  const MIN_MEANINGFUL_EARN = 30;
+
   if (earnedToday === 0 && spentToday === 0) {
     score = 0;
-  } else if (earnedToday > 0 && spentToday === 0) {
-    // Grinding without glowing
-    score = 60;
-    label = 'You earned a break 💜';
-    labelClass = 'label-grind';
   } else if (spentToday > 0 && earnedToday === 0) {
     if (restDay) {
       // That's exactly what a rest day is for
       score = 80;
-      label = 'Rest day — enjoy 🦥';
+      label = 'Rest day — enjoy';
       labelClass = 'label-balanced';
     } else {
-      // Glowing without grinding
-      score = 30;
-      label = 'Time to grind 🔥';
+      score = 25;
+      label = 'Time to grind';
       labelClass = 'label-glow';
     }
+  } else if (earnedToday < MIN_MEANINGFUL_EARN) {
+    // Some grind logged (with or without glow), but the day is still young
+    score = 40;
+    label = 'Warming up';
+    labelClass = 'label-grind';
+  } else if (spentToday === 0) {
+    // Real work done, no rest taken yet
+    score = 60;
+    label = 'You earned a break';
+    labelClass = 'label-grind';
   } else {
-    // Mix of both
-    // Perfect is if spent is roughly equal to earned (or slightly less to build a bank)
-    const ratio = spentToday / earnedToday; // 1.0 is balanced
-    if (ratio >= 0.8 && ratio <= 1.2) {
+    // Meaningful grind + some glow: judge the balance
+    const ratio = spentToday / earnedToday; // 1.0 = spent what you earned
+    if (ratio >= 0.5 && ratio <= 1.2) {
       score = 100;
       label = 'Perfect Balance ✦';
       labelClass = 'label-balanced';
-    } else if (ratio < 0.8) {
-      score = 80;
-      label = 'Great Day (Saved Time)';
+    } else if (ratio < 0.5) {
+      score = 75;
+      label = 'Saved time';
       labelClass = 'label-balanced';
     } else {
       score = 50;
-      label = 'Borrowed Time';
+      label = 'Borrowed time';
       labelClass = 'label-glow';
     }
   }
