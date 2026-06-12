@@ -418,7 +418,7 @@ export default function Home() {
         <div>
           <h1 className="logo">GetDone.</h1>
           <p className="subtitle">
-            {restToday ? 'Rest day — glow is 50% off 🦥' : 'Done for today. Go be yourself.'}
+            {restToday ? 'Rest day — glow is 50% off' : 'Grind. Glow. Repeat.'}
           </p>
         </div>
         <div className="header-actions">
@@ -448,7 +448,12 @@ export default function Home() {
         </div>
 
         <div className={`bank-status ${isBankPositive ? (bankMins > 0 ? 'status-positive' : 'status-neutral') : 'status-negative'}`}>
-          {isBankPositive ? (bankMins > 0 ? 'You earned it' : 'Time to grind') : 'In debt'}
+          {/* The motto is a reward: it only appears once the day is balanced */}
+          {isBankPositive
+            ? (todayLog.score >= 80
+              ? 'Done for today. Go be yourself.'
+              : bankMins > 0 ? 'You earned it' : 'Time to grind')
+            : 'In debt'}
         </div>
       </section>
 
