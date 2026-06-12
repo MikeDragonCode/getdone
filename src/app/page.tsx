@@ -768,14 +768,19 @@ export default function Home() {
             <div className="form-row">
               <div className="form-field emoji-field">
                 <label>Emoji</label>
-                <select
-                  value={form.emoji}
-                  onChange={(e) => setForm({ ...form, emoji: e.target.value })}
-                >
-                  {/* Keep the current emoji selectable even if it's not a preset */}
-                  {!EMOJI_PRESETS.includes(form.emoji) && <option value={form.emoji}>{form.emoji}</option>}
-                  {EMOJI_PRESETS.map(em => <option key={em} value={em}>{em}</option>)}
-                </select>
+                {/* iOS ignores text-align on <select>: centered span + invisible select on top */}
+                <div className="emoji-select">
+                  {form.emoji}
+                  <select
+                    value={form.emoji}
+                    onChange={(e) => setForm({ ...form, emoji: e.target.value })}
+                    aria-label="Emoji"
+                  >
+                    {/* Keep the current emoji selectable even if it's not a preset */}
+                    {!EMOJI_PRESETS.includes(form.emoji) && <option value={form.emoji}>{form.emoji}</option>}
+                    {EMOJI_PRESETS.map(em => <option key={em} value={em}>{em}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="form-field">
                 <label>Name</label>

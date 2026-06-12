@@ -189,13 +189,18 @@ export default function Onboarding() {
             
             {/* Custom Add */}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <select
-                value={customEmoji}
-                onChange={e => setCustomEmoji(e.target.value)}
-                style={{ width: '3.5rem', textAlign: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)', appearance: 'none', cursor: 'pointer' }}
-              >
-                {EMOJI_PRESETS_GRIND.map(em => <option key={em} value={em}>{em}</option>)}
-              </select>
+              {/* iOS ignores text-align on <select>: render the emoji centered, keep the select invisible on top */}
+              <div style={{ position: 'relative', width: '3.5rem', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--radius-sm)' }}>
+                {customEmoji}
+                <select
+                  value={customEmoji}
+                  onChange={e => setCustomEmoji(e.target.value)}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                  aria-label="Emoji"
+                >
+                  {EMOJI_PRESETS_GRIND.map(em => <option key={em} value={em}>{em}</option>)}
+                </select>
+              </div>
               <input 
                 type="text" 
                 placeholder="Add custom grind..." 
@@ -248,13 +253,17 @@ export default function Onboarding() {
             
             {/* Custom Add */}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <select
-                value={customEmoji}
-                onChange={e => setCustomEmoji(e.target.value)}
-                style={{ width: '3.5rem', textAlign: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: 'var(--radius-sm)', appearance: 'none', cursor: 'pointer' }}
-              >
-                {EMOJI_PRESETS_GLOW.map(em => <option key={em} value={em}>{em}</option>)}
-              </select>
+              <div style={{ position: 'relative', width: '3.5rem', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--radius-sm)' }}>
+                {customEmoji}
+                <select
+                  value={customEmoji}
+                  onChange={e => setCustomEmoji(e.target.value)}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                  aria-label="Emoji"
+                >
+                  {EMOJI_PRESETS_GLOW.map(em => <option key={em} value={em}>{em}</option>)}
+                </select>
+              </div>
               <input 
                 type="text" 
                 placeholder="Add custom glow..." 
