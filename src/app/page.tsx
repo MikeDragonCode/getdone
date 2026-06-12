@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Trophy, Play, Square, Pencil, Plus, Wind, Moon, Sparkles, Settings, RotateCcw, Share2 } from 'lucide-react';
+import { Flame, Trophy, Play, Square, Plus, Wind, Moon, Sparkles, Settings, RotateCcw, Share2 } from 'lucide-react';
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
 import { getUserData, saveUserData, initUserData, resetUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
@@ -40,6 +40,7 @@ export default function Home() {
   const [nudge, setNudge] = useState<string | null>(null);
   const [streakOpen, setStreakOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'grind' | 'glow'>('grind');
   const [resetArmed, setResetArmed] = useState(false);
   // Highest chunk we've already nudged about — prevents repeat fires while a timer runs
   const lastNudgedChunk = useRef(0);
@@ -488,105 +489,74 @@ export default function Home() {
         })}
       </section>
 
-      <section className="habits-container">
-        {/* GRIND COLUMN */}
-        <div className="habit-column">
-          <h2 className="column-title">
+      {/* Duolingo-style: one focused list, tabs to switch worlds */}
+      <section className="habits-section">
+        <div className="tab-switcher">
+          <button
+            className={`tab tab-grind ${activeTab === 'grind' ? 'active' : ''}`}
+            onClick={() => setActiveTab('grind')}
+          >
             <span className="dot dot-grind"></span> Grind
-          </h2>
-          <div className="habit-list">
-            {grindHabits.map(habit => {
-              const log = todayLog.grindLogs.find(l => l.habitId === habit.id);
-              const val = log?.value || 0;
-              return (
-                <div key={habit.id} className="habit-card grind">
-                  <div className="habit-header">
-                    <div className="habit-emoji">{habit.emoji}</div>
-                    <div className="habit-info">
-                      <div className="habit-name">{habit.name}</div>
-                      <div className="habit-rate">
-                        Earn <span className="rate-value">{habit.valueType === 'duration' ? `${habit.earnRate! * 60}` : `${habit.earnRate}`}</span><span className="dot dot-glow rate-dot"></span> {habit.valueType === 'duration' ? 'per hr' : 'per done'}
-                      </div>
-                    </div>
-                    <button className="btn-edit" onClick={() => openModal('grind', habit)} aria-label="Edit habit"><Pencil size={13} /></button>
-                  </div>
-                  <div className="habit-controls">
-                    {habit.valueType === 'duration' ? (
-                      <>
-                        {timer?.habitId === habit.id ? (
-                          <button className="btn-timer-main timer-active grind" onClick={stopTimer}>
-                            <Square size={11} fill="currentColor" /> {formatElapsed(now - timer.startedAt)}
-                          </button>
-                        ) : (
-                          <button className="btn-timer-main grind" onClick={() => startTimer(habit.id, 'grind')} disabled={!!timer}><Play size={12} fill="currentColor" /> Start</button>
-                        )}
-                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'grind', 15)}>+15m</button>
-                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'grind', 60)}>+1h</button>
-                      </>
-                    ) : (
-                      <button className="btn-increment" onClick={() => addIncrement(habit.id, 'grind', 1)}>+1 Done</button>
-                    )}
-                  </div>
-                  {val > 0 && (
-                    <div className="logged-value">
-                      Logged today: {habit.valueType === 'duration' ? `${val}m` : `${val} times`}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <button className="btn-add-habit grind-add" onClick={() => openModal('grind', null)}><Plus size={14} /> Add activity</button>
-          </div>
+          </button>
+          <button
+            className={`tab tab-glow ${activeTab === 'glow' ? 'active' : ''}`}
+            onClick={() => setActiveTab('glow')}
+          >
+            <span className="dot dot-glow"></span> Glow
+          </button>
         </div>
 
-        {/* GLOW COLUMN */}
-        <div className="habit-column">
-          <h2 className="column-title">
-            <span className="dot dot-glow"></span> Glow
-          </h2>
-          <div className="habit-list">
-            {glowHabits.map(habit => {
-              const log = todayLog.glowLogs.find(l => l.habitId === habit.id);
-              const val = log?.value || 0;
-              return (
-                <div key={habit.id} className="habit-card glow">
-                  <div className="habit-header">
-                    <div className="habit-emoji">{habit.emoji}</div>
-                    <div className="habit-info">
-                      <div className="habit-name">{habit.name}</div>
-                      <div className="habit-rate">
-                        Cost <span className="rate-value">{habit.costRate}x</span><span className="dot dot-glow rate-dot"></span>
-                      </div>
-                    </div>
-                    <button className="btn-edit" onClick={() => openModal('glow', habit)} aria-label="Edit habit"><Pencil size={13} /></button>
-                  </div>
-                  <div className="habit-controls">
-                    {habit.valueType === 'duration' ? (
-                      <>
-                        {timer?.habitId === habit.id ? (
-                          <button className="btn-timer-main timer-active glow" onClick={stopTimer}>
-                            <Square size={11} fill="currentColor" /> {formatElapsed(now - timer.startedAt)}
-                          </button>
-                        ) : (
-                          <button className="btn-timer-main glow" onClick={() => startTimer(habit.id, 'glow')} disabled={!!timer}><Play size={12} fill="currentColor" /> Start</button>
-                        )}
-                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'glow', 15)}>-15m</button>
-                        <button className="btn-increment btn-secondary-log" onClick={() => addIncrement(habit.id, 'glow', 60)}>-1h</button>
-                      </>
+        <div className="habit-list">
+          {(activeTab === 'grind' ? grindHabits : glowHabits).map(habit => {
+            const logs = activeTab === 'grind' ? todayLog.grindLogs : todayLog.glowLogs;
+            const val = logs.find(l => l.habitId === habit.id)?.value || 0;
+            const isRunning = timer?.habitId === habit.id;
+            return (
+              <motion.div
+                key={habit.id}
+                className={`habit-row ${activeTab} ${isRunning ? 'running' : ''}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="habit-emoji">{habit.emoji}</div>
+                <div className="habit-info" onClick={() => openModal(activeTab, habit)} role="button">
+                  <div className="habit-name">{habit.name}</div>
+                  <div className="habit-rate">
+                    {activeTab === 'grind' ? (
+                      <>Earn <span className="rate-value">{habit.valueType === 'duration' ? habit.earnRate! * 60 : habit.earnRate}</span><span className="dot dot-glow rate-dot"></span> {habit.valueType === 'duration' ? '/hr' : '/done'}</>
                     ) : (
-                      <button className="btn-increment" onClick={() => addIncrement(habit.id, 'glow', 1)}>-1 Done</button>
+                      <>Cost <span className="rate-value">{habit.costRate}x</span><span className="dot dot-glow rate-dot"></span></>
                     )}
+                    {val > 0 && <span className="logged-inline"> · today {habit.valueType === 'duration' ? `${val}m` : `×${val}`}</span>}
                   </div>
-                  {val > 0 && (
-                    <div className="logged-value">
-                      Spent today: {habit.valueType === 'duration' ? `${val}m` : `${val} times`}
-                    </div>
+                </div>
+                <div className="row-actions">
+                  {habit.valueType === 'duration' ? (
+                    <>
+                      <button className="btn-quick" onClick={() => addIncrement(habit.id, activeTab, 15)}>
+                        {activeTab === 'grind' ? '+15' : '-15'}
+                      </button>
+                      {isRunning ? (
+                        <button className={`btn-row-timer timer-active ${activeTab}`} onClick={stopTimer}>
+                          <Square size={10} fill="currentColor" /> {formatElapsed(now - timer.startedAt)}
+                        </button>
+                      ) : (
+                        <button className={`btn-row-timer ${activeTab}`} onClick={() => startTimer(habit.id, activeTab)} disabled={!!timer}>
+                          <Play size={12} fill="currentColor" />
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button className={`btn-row-timer ${activeTab}`} onClick={() => addIncrement(habit.id, activeTab, 1)}>+1</button>
                   )}
                 </div>
-              );
-            })}
-            <button className="btn-add-habit glow-add" onClick={() => openModal('glow', null)}><Plus size={14} /> Add activity</button>
-          </div>
+              </motion.div>
+            );
+          })}
+          <button className={`btn-add-habit ${activeTab}-add`} onClick={() => openModal(activeTab, null)}>
+            <Plus size={14} /> Add activity
+          </button>
         </div>
       </section>
 
