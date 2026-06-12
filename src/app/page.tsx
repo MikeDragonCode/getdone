@@ -6,13 +6,14 @@ import { Flame, Trophy, Play, Square, Plus, Wind, Moon, Sparkles, Settings, Rota
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
 import { getUserData, saveUserData, initUserData, resetUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
+import EmojiPicker from '../components/EmojiPicker';
 
 const currentWindow = (): 'morning' | 'day' | 'evening' => {
   const h = new Date().getHours();
   return h < 12 ? 'morning' : h < 18 ? 'day' : 'evening';
 };
 
-const EMOJI_PRESETS = ['💻', '🏋️', '📚', '🧘', '🏃', '🎮', '🍿', '🏀', '🎧', '😴', '🎨', '🚗'];
+const EMOJI_PRESETS = ['💻', '🏋️', '📚', '🧘', '🏃', '✍️', '🎯', '🔧', '📞', '🩺', '👨‍🍳', '💼', '🧪', '🧠', '🌱', '🎮', '🍿', '🏀', '🎧', '😴', '🎨', '🚗', '⚽', '🎬', '🍕', '☕', '🎲', '🏖️', '🛁', '🌅'];
 
 // "Take a break" nudge fires every time the bank crosses another full chunk
 const BREAK_CHUNK_MINS = 30;
@@ -193,7 +194,7 @@ export default function Home() {
     item.value += amount;
     
     const restToday = isRestDay(data);
-    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, data.habits, restToday);
+    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, data.habits, restToday, data.dailyGrindHours);
     newLog.earnedTimeDelta = metrics.earnedTimeDelta;
     newLog.score = metrics.scoreInfo.score;
 
@@ -268,7 +269,7 @@ export default function Home() {
       glowLogs: todayLog.glowLogs.filter(l => l.habitId !== id),
     };
     const newData = deleteHabit({ ...data }, id);
-    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, newData.habits, isRestDay(newData));
+    const metrics = calculateDailyMetrics(newLog.grindLogs, newLog.glowLogs, newData.habits, isRestDay(newData), newData.dailyGrindHours);
     newLog.earnedTimeDelta = metrics.earnedTimeDelta;
     newLog.score = metrics.scoreInfo.score;
     setTodayLog(newLog);
@@ -278,7 +279,7 @@ export default function Home() {
   };
 
   const recalcToday = (userData: UserData) => {
-    const metrics = calculateDailyMetrics(todayLog.grindLogs, todayLog.glowLogs, userData.habits, isRestDay(userData));
+    const metrics = calculateDailyMetrics(todayLog.grindLogs, todayLog.glowLogs, userData.habits, isRestDay(userData), userData.dailyGrindHours);
     const newLog = { ...todayLog, earnedTimeDelta: metrics.earnedTimeDelta, score: metrics.scoreInfo.score };
     setTodayLog(newLog);
     saveDayLog(newLog, userData);
@@ -594,6 +595,27 @@ export default function Home() {
               <p className="field-hint">Glow is 50% off on rest days, and your streak never breaks.</p>
             </div>
 
+            <div className="form-field">
+              <label>Typical grind day</label>
+              <div className="segmented">
+                {[{ h: 3, t: 'Light ~3h' }, { h: 8, t: 'Standard ~8h' }, { h: 12, t: 'Heavy ~12h' }].map(({ h, t }) => (
+                  <button
+                    key={h}
+                    className={(data.dailyGrindHours || 8) === h ? 'active' : ''}
+                    onClick={() => {
+                      const d = { ...data, dailyGrindHours: h };
+                      saveUserData(d);
+                      setData(d);
+                      recalcToday(d);
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <p className="field-hint">Sets how much grind makes a balanced day.</p>
+            </div>
+
             <div className="form-field danger-zone">
               <label>Danger zone</label>
               {!resetArmed ? (
@@ -768,19 +790,11 @@ export default function Home() {
             <div className="form-row">
               <div className="form-field emoji-field">
                 <label>Emoji</label>
-                {/* iOS ignores text-align on <select>: centered span + invisible select on top */}
-                <div className="emoji-select">
-                  {form.emoji}
-                  <select
-                    value={form.emoji}
-                    onChange={(e) => setForm({ ...form, emoji: e.target.value })}
-                    aria-label="Emoji"
-                  >
-                    {/* Keep the current emoji selectable even if it's not a preset */}
-                    {!EMOJI_PRESETS.includes(form.emoji) && <option value={form.emoji}>{form.emoji}</option>}
-                    {EMOJI_PRESETS.map(em => <option key={em} value={em}>{em}</option>)}
-                  </select>
-                </div>
+                <EmojiPicker
+                  value={form.emoji}
+                  onChange={(em) => setForm({ ...form, emoji: em })}
+                  options={EMOJI_PRESETS.includes(form.emoji) ? EMOJI_PRESETS : [form.emoji, ...EMOJI_PRESETS]}
+                />
               </div>
               <div className="form-field">
                 <label>Name</label>

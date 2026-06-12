@@ -7,7 +7,8 @@ export function calculateDailyMetrics(
   grindLogs: ItemLog[],
   glowLogs: ItemLog[],
   habits: HabitItem[],
-  restDay = false
+  restDay = false,
+  dailyGrindHours = 8
 ): { earnedTimeDelta: number; scoreInfo: DayScore } {
   let earnedToday = 0;
   let spentToday = 0;
@@ -37,10 +38,12 @@ export function calculateDailyMetrics(
   let label = 'Log your day';
   let labelClass = 'label-empty';
 
-  // A "real" day needs volume: at least 30 banked minutes of grind
-  // (~2h of typical work). Without it, ratios are meaningless — 15 min of
-  // work + 4 min of gaming must not read as "Perfect Balance".
-  const MIN_MEANINGFUL_EARN = 30;
+  // A "real" day needs volume, scaled to the user's typical schedule:
+  // ~40% of what a full grind day would bank at the default 15m/hr rate.
+  // Light (3h) → 18m, standard (8h) → 48m, heavy (12h) → 72m. Without it,
+  // ratios are meaningless — 15 min of work + 4 min of gaming must not
+  // read as "Perfect Balance" for anyone but a true 1h-a-day schedule.
+  const MIN_MEANINGFUL_EARN = Math.max(15, Math.round(dailyGrindHours * 60 * 0.25 * 0.4));
 
   if (earnedToday === 0 && spentToday === 0) {
     score = 0;

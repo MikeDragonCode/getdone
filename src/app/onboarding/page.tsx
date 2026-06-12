@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HabitItem } from '../../lib/types';
 import { initUserData } from '../../lib/store';
+import EmojiPicker from '../../components/EmojiPicker';
 
 const DEFAULT_GRIND: HabitItem[] = [
   { id: 'g1', name: 'Deep Work', emoji: '💻', type: 'grind', valueType: 'duration', earnRate: 0.25 },
@@ -30,8 +31,15 @@ const DEFAULT_GLOW: HabitItem[] = [
   { id: 'gl10', name: 'Doing Absolutely Nothing', emoji: '🦥', type: 'glow', valueType: 'duration', costRate: 1.0 },
 ];
 
-const EMOJI_PRESETS_GRIND = ['✨', '💻', '🏋️', '📚', '🧹', '🚀', '🧘', '🏃', '✍️', '🎯', '🔧'];
-const EMOJI_PRESETS_GLOW = ['✨', '🎮', '🍿', '🏀', '🎧', '😴', '🍻', '🛹', '🎨', '🚗', '🦥'];
+const EMOJI_PRESETS_GRIND = ['✨', '💻', '🏋️', '📚', '🧹', '🚀', '🧘', '🏃', '✍️', '🎯', '🔧', '📞', '🩺', '👨‍🍳', '🚜', '🎓', '💼', '🏗️', '🧪', '🎻', '💪', '🧠', '📊', '🛠️', '🚿', '🌱', '🐕', '👶', '🏥', '⚙️'];
+const EMOJI_PRESETS_GLOW = ['✨', '🎮', '🍿', '🏀', '🎧', '😴', '🍻', '🛹', '🎨', '🚗', '🦥', '⚽', '🎣', '🎬', '📺', '🍕', '☕', '🍦', '🎲', '♟️', '🏖️', '🚴', '🎤', '📖', '🧖', '🛁', '🌅', '🐈', '💆', '🍷'];
+
+// Pace presets: a "full day" differs wildly between people
+const PACE_OPTIONS = [
+  { hours: 3, title: 'Light', desc: 'A few focused hours and you\'re done — founder mode, freelance, semi-retired.' },
+  { hours: 8, title: 'Standard', desc: 'Classic full-time rhythm — office, studies, 9 to 5.' },
+  { hours: 12, title: 'Heavy', desc: 'Long shifts — medicine, service, two jobs. Your rest is sacred.' },
+];
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
@@ -44,6 +52,7 @@ export default function Onboarding() {
   const [customName, setCustomName] = useState('');
   const [customEmoji, setCustomEmoji] = useState('✨');
   const [restDays, setRestDays] = useState<number[]>([0, 6]); // default 5/2
+  const [paceHours, setPaceHours] = useState(8);
 
   // Each step starts from the top — prevents the page "jumping" mid-scroll
   useEffect(() => {
@@ -71,7 +80,7 @@ export default function Onboarding() {
     if (finalHabits.filter(h => h.type === 'grind').length === 0) finalHabits.push(DEFAULT_GRIND[0]);
     if (finalHabits.filter(h => h.type === 'glow').length === 0) finalHabits.push(DEFAULT_GLOW[0]);
 
-    const data = initUserData(finalHabits, restDays);
+    const data = initUserData(finalHabits, restDays, paceHours);
     data.onboardingComplete = true;
     localStorage.setItem('getdone_data_v2', JSON.stringify(data));
     window.location.href = '/';
@@ -167,7 +176,7 @@ export default function Onboarding() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
           <button onClick={() => setStep(1)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', padding: 0 }}>← Back</button>
           <h2>What is your <span style={{ color: 'var(--grind-color)' }}>Grind</span>?</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Step 1 of 3 — pick the hard things that <b>earn</b> you free time.</p>
+          <p style={{ color: 'var(--text-muted)' }}>Step 1 of 4 — pick the hard things that <b>earn</b> you free time.</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50dvh', overflowY: 'auto', paddingRight: '10px' }}>
             {grindOptions.map(h => (
@@ -189,18 +198,7 @@ export default function Onboarding() {
             
             {/* Custom Add */}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              {/* iOS ignores text-align on <select>: render the emoji centered, keep the select invisible on top */}
-              <div style={{ position: 'relative', width: '3.5rem', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--radius-sm)' }}>
-                {customEmoji}
-                <select
-                  value={customEmoji}
-                  onChange={e => setCustomEmoji(e.target.value)}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                  aria-label="Emoji"
-                >
-                  {EMOJI_PRESETS_GRIND.map(em => <option key={em} value={em}>{em}</option>)}
-                </select>
-              </div>
+              <EmojiPicker value={customEmoji} onChange={setCustomEmoji} options={EMOJI_PRESETS_GRIND} />
               <input 
                 type="text" 
                 placeholder="Add custom grind..." 
@@ -231,7 +229,7 @@ export default function Onboarding() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
           <button onClick={() => setStep(2)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', padding: 0 }}>← Back</button>
           <h2>What is your <span style={{ color: 'var(--glow-color)' }}>Glow</span>?</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Step 2 of 3 — pick how you unwind. This is what you&apos;ll <b>spend</b> earned time on.</p>
+          <p style={{ color: 'var(--text-muted)' }}>Step 2 of 4 — pick how you unwind. This is what you&apos;ll <b>spend</b> earned time on.</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left', maxHeight: '50dvh', overflowY: 'auto', paddingRight: '10px' }}>
             {glowOptions.map(h => (
@@ -253,17 +251,7 @@ export default function Onboarding() {
             
             {/* Custom Add */}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-              <div style={{ position: 'relative', width: '3.5rem', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--radius-sm)' }}>
-                {customEmoji}
-                <select
-                  value={customEmoji}
-                  onChange={e => setCustomEmoji(e.target.value)}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                  aria-label="Emoji"
-                >
-                  {EMOJI_PRESETS_GLOW.map(em => <option key={em} value={em}>{em}</option>)}
-                </select>
-              </div>
+              <EmojiPicker value={customEmoji} onChange={setCustomEmoji} options={EMOJI_PRESETS_GLOW} />
               <input 
                 type="text" 
                 placeholder="Add custom glow..." 
@@ -293,9 +281,46 @@ export default function Onboarding() {
       {step === 4 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
           <button onClick={() => setStep(3)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', padding: 0 }}>← Back</button>
+          <h2>How heavy is your <span style={{ color: 'var(--grind-color)' }}>day</span>?</h2>
+          <p style={{ color: 'var(--text-muted)', textAlign: 'left' }}>
+            Step 3 of 4 — everyone&apos;s &quot;full day&quot; is different. This sets how much grind it takes to reach a balanced day. You can change it later in settings.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left' }}>
+            {PACE_OPTIONS.map(opt => (
+              <div
+                key={opt.hours}
+                onClick={() => setPaceHours(opt.hours)}
+                style={{
+                  padding: '1rem',
+                  background: paceHours === opt.hours ? 'var(--grind-bg)' : 'var(--bg-surface)',
+                  border: `1px solid ${paceHours === opt.hours ? 'var(--grind-color)' : 'rgba(255,255,255,0.1)'}`,
+                  borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'var(--transition)'
+                }}
+              >
+                <div style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+                  {opt.title} <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>· ~{opt.hours}h of grind</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{opt.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setStep(5)}
+            style={{ padding: '1rem 2rem', background: 'var(--grind-color)', color: 'white', borderRadius: 'var(--radius-full)', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', border: 'none', marginTop: '1rem' }}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {step === 5 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
+          <button onClick={() => setStep(4)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', padding: 0 }}>← Back</button>
           <h2>When do you <span style={{ color: 'var(--balanced-color)' }}>rest</span>?</h2>
           <p style={{ color: 'var(--text-muted)', textAlign: 'left' }}>
-            Step 3 of 3 — pick your days off. Any schedule works: 5/2, 2/2, part-time.
+            Step 4 of 4 — pick your days off. Any schedule works: 5/2, 2/2, part-time.
             On rest days glow is half price and your streak never breaks.
           </p>
 

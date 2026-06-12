@@ -38,6 +38,10 @@ export interface UserData {
   restDays?: number[];
   // Last date (YYYY-MM-DD) the end-of-day recap was shown for
   lastRecapDate?: string;
+  // Typical grind-day length in hours (3 = light, 8 = standard, 12 = heavy).
+  // Personalizes what counts as a "full" day — a 3h-a-day founder and a
+  // 12h-shift doctor should both be able to reach Perfect Balance.
+  dailyGrindHours?: number;
 }
 
 export interface DayScore {

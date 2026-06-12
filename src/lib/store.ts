@@ -17,7 +17,7 @@ export function saveUserData(data: UserData): void {
   localStorage.setItem(STORE_KEY, JSON.stringify(data));
 }
 
-export function initUserData(habits: HabitItem[], restDays: number[] = []): UserData {
+export function initUserData(habits: HabitItem[], restDays: number[] = [], dailyGrindHours = 8): UserData {
   const data: UserData = {
     habits,
     logs: [],
@@ -25,6 +25,7 @@ export function initUserData(habits: HabitItem[], restDays: number[] = []): User
     onboardingComplete: false,
     createdAt: new Date().toISOString(),
     restDays,
+    dailyGrindHours,
   };
   saveUserData(data);
   return data;
