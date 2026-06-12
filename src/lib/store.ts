@@ -34,6 +34,13 @@ export function isRestDay(data: UserData, date: Date = new Date()): boolean {
   return (data.restDays || []).includes(date.getDay());
 }
 
+// Full wipe — "start over" from settings
+export function resetUserData(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORE_KEY);
+  localStorage.removeItem('getdone_timer');
+}
+
 export function getTodayDate(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

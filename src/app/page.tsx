@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Trophy, Play, Square, Pencil, Plus, Wind, Moon, Sparkles } from 'lucide-react';
+import { Flame, Trophy, Play, Square, Pencil, Plus, Wind, Moon, Sparkles, Settings, RotateCcw } from 'lucide-react';
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
-import { getUserData, saveUserData, initUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
+import { getUserData, saveUserData, initUserData, resetUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
 
 const currentWindow = (): 'morning' | 'day' | 'evening' => {
@@ -39,6 +39,8 @@ export default function Home() {
   const [now, setNow] = useState(Date.now());
   const [nudge, setNudge] = useState<string | null>(null);
   const [streakOpen, setStreakOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [resetArmed, setResetArmed] = useState(false);
   // Highest chunk we've already nudged about — prevents repeat fires while a timer runs
   const lastNudgedChunk = useRef(0);
 
@@ -313,10 +315,15 @@ export default function Home() {
             {restToday ? 'Rest day — glow is 50% off 🦥' : 'Done for today. Go be yourself.'}
           </p>
         </div>
-        <button className="streak" onClick={() => setStreakOpen(true)}>
-          <Flame size={22} className="streak-flame" fill="currentColor" />
-          <span className="streak-count">{streak}</span>
-        </button>
+        <div className="header-actions">
+          <button className="streak" onClick={() => setStreakOpen(true)}>
+            <Flame size={22} className="streak-flame" fill="currentColor" />
+            <span className="streak-count">{streak}</span>
+          </button>
+          <button className="btn-settings" onClick={() => { setResetArmed(false); setSettingsOpen(true); }} aria-label="Settings">
+            <Settings size={20} />
+          </button>
+        </div>
       </header>
 
       <section className="time-bank-widget">
@@ -471,6 +478,73 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Settings */}
+      {settingsOpen && (
+        <div className="modal-overlay" onClick={() => setSettingsOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Settings</h3>
+
+            <div className="form-field">
+              <label>Rest days</label>
+              <div className="rest-days-row">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, day) => {
+                  const selected = (data.restDays || []).includes(day);
+                  return (
+                    <button
+                      key={day}
+                      className={`rest-day-chip ${selected ? 'active' : ''}`}
+                      onClick={() => {
+                        const next = selected
+                          ? (data.restDays || []).filter(d => d !== day)
+                          : [...(data.restDays || []), day];
+                        const d = { ...data, restDays: next };
+                        saveUserData(d);
+                        setData(d);
+                        recalcToday(d);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="field-hint">Glow is 50% off on rest days, and your streak never breaks.</p>
+            </div>
+
+            <div className="form-field danger-zone">
+              <label>Danger zone</label>
+              {!resetArmed ? (
+                <button className="btn-danger btn-reset" onClick={() => setResetArmed(true)}>
+                  <RotateCcw size={14} /> Start over
+                </button>
+              ) : (
+                <>
+                  <p className="field-hint danger-hint">
+                    This wipes all habits, history and your time bank. No way back.
+                  </p>
+                  <div className="reset-confirm-row">
+                    <button className="btn-secondary" onClick={() => setResetArmed(false)}>Keep my data</button>
+                    <button
+                      className="btn-danger btn-reset"
+                      onClick={() => {
+                        resetUserData();
+                        window.location.href = '/onboarding';
+                      }}
+                    >
+                      Yes, wipe everything
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={() => setSettingsOpen(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Streak history — Duolingo-style month calendar */}
       {streakOpen && (
