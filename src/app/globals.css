@@ -202,6 +202,12 @@ body {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(168, 85, 247, 0.2);
 }
 
+/* Entry animation for onboarding steps — settles and stays, unlike the toast keyframe */
+@keyframes fadeUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 @keyframes slideUpFade {
   0% { transform: translateY(100%); opacity: 0; }
   10% { transform: translateY(0); opacity: 1; }

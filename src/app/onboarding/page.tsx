@@ -127,7 +127,7 @@ export default function Onboarding() {
     >
       
       {step === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'slideUpFade 0.5s ease' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeUp 0.4s ease' }}>
           <h1 className="logo" style={{ fontSize: '3rem' }}>GetDone.</h1>
           <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>
             Welcome to the new time economy.<br/><br/>
@@ -144,7 +144,7 @@ export default function Onboarding() {
       )}
 
       {step === 2 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUpFade 0.5s ease', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
           <h2>What is your <span style={{ color: 'var(--grind-color)' }}>Grind</span>?</h2>
           <p style={{ color: 'var(--text-muted)' }}>Select the hard things that earn you time.</p>
           
@@ -202,7 +202,7 @@ export default function Onboarding() {
       )}
 
       {step === 3 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUpFade 0.5s ease', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
           <h2>What is your <span style={{ color: 'var(--glow-color)' }}>Glow</span>?</h2>
           <p style={{ color: 'var(--text-muted)' }}>Select the ways you want to unwind.</p>
           
@@ -260,7 +260,7 @@ export default function Onboarding() {
       )}
 
       {step === 4 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUpFade 0.5s ease', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeUp 0.4s ease', width: '100%' }}>
           <h2>When do you <span style={{ color: 'var(--balanced-color)' }}>rest</span>?</h2>
           <p style={{ color: 'var(--text-muted)' }}>
             Pick your days off — any schedule works: 5/2, 2/2, part-time.<br/>
