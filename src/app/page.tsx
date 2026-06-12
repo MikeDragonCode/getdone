@@ -130,7 +130,8 @@ export default function Home() {
   // Hooks must run unconditionally — keep every useMemo above the early return
   const bankMins = data ? Math.floor(data.earnedTimeBank) : 0;
 
-  // Glow suggestion: random pick among habits that fit the current time of day
+  // Glow suggestion: deterministic pick per day+time-of-day window so the
+  // text doesn't reshuffle (and reflow the page) on every bank change
   const suggestion = useMemo(() => {
     if (!data || bankMins < 15) return null;
     const win = currentWindow();
@@ -138,8 +139,11 @@ export default function Home() {
       h => h.type === 'glow' && (!h.window || h.window === 'any' || h.window === win)
     );
     if (candidates.length === 0) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }, [bankMins, data]);
+    const seed = `${getTodayDate()}-${win}`;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+    return candidates[Math.abs(hash) % candidates.length];
+  }, [bankMins >= 15, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mounted || !data || !todayLog) return null;
 
@@ -472,22 +476,16 @@ export default function Home() {
         </motion.section>
       )}
 
-      <section className="weekly-rhythm">
-        {/* Today first, going back in time — a streak burns left to right */}
+      {/* Subtle 7-day strip — the full calendar lives behind the streak chip */}
+      <button className="weekly-rhythm" onClick={() => setStreakOpen(true)} aria-label="Streak history">
         {week.slice().reverse().map((d, i) => {
-          const dayLetter = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(d.date + 'T00:00').getDay()];
           const active = d.score > 20;
           const isToday = i === 0;
           return (
-            <div key={d.date} className="rhythm-day">
-              <div className={`rhythm-dot ${active ? 'active' : ''} ${isToday ? 'today' : ''}`}>
-                {active && <Flame size={15} fill="currentColor" />}
-              </div>
-              <span className="rhythm-label">{dayLetter}</span>
-            </div>
+            <span key={d.date} className={`rhythm-mini-dot ${active ? 'active' : ''} ${isToday ? 'today' : ''}`} />
           );
         })}
-      </section>
+      </button>
 
       {/* Duolingo-style: one focused list, tabs to switch worlds */}
       <section className="habits-section">
@@ -536,6 +534,9 @@ export default function Home() {
                     <>
                       <button className="btn-quick" onClick={() => addIncrement(habit.id, activeTab, 15)}>
                         {activeTab === 'grind' ? '+15' : '-15'}
+                      </button>
+                      <button className="btn-quick" onClick={() => addIncrement(habit.id, activeTab, 60)}>
+                        {activeTab === 'grind' ? '+1h' : '-1h'}
                       </button>
                       {isRunning ? (
                         <button className={`btn-row-timer timer-active ${activeTab}`} onClick={stopTimer}>

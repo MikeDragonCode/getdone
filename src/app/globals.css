@@ -543,7 +543,7 @@ body {
   gap: 0.35rem;
 }
 
-/* Glow suggestion */
+/* Glow suggestion — fixed min-height so 1-vs-2 line text doesn't reflow the page */
 .suggestion {
   display: flex;
   align-items: center;
@@ -551,10 +551,10 @@ body {
   background: var(--glow-bg);
   border: 1px solid var(--glow-border);
   border-radius: var(--radius-md);
-  padding: 0.85rem 1rem;
+  padding: 0.6rem 1rem;
+  min-height: 64px;
   font-size: 0.9rem;
   color: var(--text-main);
-  margin-top: -1.25rem;
 }
 
 .suggestion-icon {
@@ -596,49 +596,35 @@ body {
   letter-spacing: 0.08em;
 }
 
-/* Weekly Rhythm */
+/* Weekly Rhythm — quiet mini-strip; full calendar is behind the streak chip */
 .weekly-rhythm {
   display: flex;
-  justify-content: space-between;
-  background: var(--bg-surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-}
-
-.rhythm-day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.rhythm-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-top: -0.5rem;
 }
 
-.rhythm-dot.active {
-  background: var(--grind-bg);
-  border-color: var(--grind-border);
+.rhythm-mini-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-surface-hover);
+  transition: var(--transition);
 }
 
-.rhythm-dot.today {
-  border-color: var(--grind-color);
-  box-shadow: 0 0 12px rgba(251, 146, 60, 0.25);
+.rhythm-mini-dot.active {
+  background: var(--grind-color);
+  box-shadow: 0 0 6px rgba(251, 146, 60, 0.5);
 }
 
-.rhythm-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-muted);
+.rhythm-mini-dot.today {
+  outline: 1px solid rgba(251, 146, 60, 0.5);
+  outline-offset: 2px;
 }
 
 /* Header actions & settings */
