@@ -751,6 +751,24 @@ body {
   font-size: 1rem;
 }
 
+.recap-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.recap-actions .nudge-btn { margin-top: 0; flex: 2; }
+
+.recap-share {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.85rem;
+  font-size: 1rem;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

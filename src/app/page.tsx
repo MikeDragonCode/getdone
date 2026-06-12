@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Trophy, Play, Square, Pencil, Plus, Wind, Moon, Sparkles, Settings, RotateCcw } from 'lucide-react';
+import { Flame, Trophy, Play, Square, Pencil, Plus, Wind, Moon, Sparkles, Settings, RotateCcw, Share2 } from 'lucide-react';
 import { HabitItem, ItemLog, DayLog, UserData } from '../lib/types';
 import { getUserData, saveUserData, initUserData, resetUserData, getTodayDate, getTodayLog, saveDayLog, getStreak, getBestStreak, getLast7Days, isRestDay, upsertHabit, deleteHabit } from '../lib/store';
 import { calculateDailyMetrics } from '../lib/scoring';
@@ -282,6 +282,112 @@ export default function Home() {
   const streak = getStreak(data);
   const week = getLast7Days(data);
   const restToday = isRestDay(data);
+
+  // Renders the recap as a story-sized image and opens the native share sheet
+  const shareRecap = async (log: DayLog) => {
+    const W = 1080, H = 1350;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Background
+    ctx.fillStyle = '#13111c';
+    ctx.fillRect(0, 0, W, H);
+
+    // Soft glow blobs
+    const glow = ctx.createRadialGradient(W * 0.8, H * 0.15, 0, W * 0.8, H * 0.15, 500);
+    glow.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
+    glow.addColorStop(1, 'rgba(168, 85, 247, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    const warm = ctx.createRadialGradient(W * 0.15, H * 0.85, 0, W * 0.15, H * 0.85, 500);
+    warm.addColorStop(0, 'rgba(251, 146, 60, 0.18)');
+    warm.addColorStop(1, 'rgba(251, 146, 60, 0)');
+    ctx.fillStyle = warm;
+    ctx.fillRect(0, 0, W, H);
+
+    const font = (size: number, weight = 800) =>
+      `${weight} ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+
+    // Logo
+    ctx.fillStyle = '#f8f7fa';
+    ctx.font = font(72);
+    ctx.textAlign = 'left';
+    ctx.fillText('GetDone.', 80, 150);
+    ctx.fillStyle = '#9f9bad';
+    ctx.font = font(34, 600);
+    ctx.fillText('Done for today. Go be yourself.', 80, 210);
+
+    // Weekday
+    const weekday = new Date(log.date + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    ctx.fillStyle = '#a855f7';
+    ctx.font = font(54);
+    ctx.fillText(weekday, 80, 380);
+    ctx.fillStyle = '#f8f7fa';
+    ctx.font = font(96);
+    ctx.fillText('Closed.', 80, 490);
+
+    // Stat tiles
+    const stats = [
+      { label: 'GRIND', value: String(log.grindLogs.length), color: '#fb923c' },
+      { label: 'GLOW', value: String(log.glowLogs.length), color: '#a855f7' },
+      { label: 'SCORE', value: String(log.score), color: '#10b981' },
+    ];
+    stats.forEach((s, i) => {
+      const x = 80 + i * 320;
+      const y = 600;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.beginPath();
+      ctx.roundRect(x, y, 280, 240, 28);
+      ctx.fill();
+      ctx.fillStyle = s.color;
+      ctx.font = font(96);
+      ctx.textAlign = 'center';
+      ctx.fillText(s.value, x + 140, y + 130);
+      ctx.fillStyle = '#9f9bad';
+      ctx.font = font(28, 700);
+      ctx.fillText(s.label, x + 140, y + 195);
+    });
+
+    // Banked line
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#f8f7fa';
+    ctx.font = font(46, 700);
+    const delta = Math.round(log.earnedTimeDelta);
+    ctx.fillText(
+      delta >= 0 ? `Banked +${delta} min of guilt-free time` : `Treated myself to ${Math.abs(delta)} min. Worth it.`,
+      80, 980
+    );
+
+    // Streak
+    ctx.fillStyle = '#fb923c';
+    ctx.font = font(46);
+    ctx.fillText(`🔥 ${getStreak(data!)} day streak`, 80, 1070);
+
+    // Footer
+    ctx.fillStyle = '#9f9bad';
+    ctx.font = font(32, 600);
+    ctx.fillText('getdone-rust.vercel.app', 80, 1270);
+
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+    if (!blob) return;
+    const file = new File([blob], 'getdone-recap.png', { type: 'image/png' });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'My day on GetDone' });
+        return;
+      } catch { /* user cancelled — fall through to download */ }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'getdone-recap.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const dismissRecap = () => {
     if (!recap) return;
@@ -664,7 +770,12 @@ export default function Home() {
                   ? `You banked +${Math.round(recap.earnedTimeDelta)} min. Carried into today.`
                   : `You treated yourself to ${Math.abs(Math.round(recap.earnedTimeDelta))} min. Worth it.`}
               </p>
-              <button className="btn-primary nudge-btn" onClick={dismissRecap}>New day, let&apos;s go</button>
+              <div className="recap-actions">
+                <button className="btn-secondary recap-share" onClick={() => shareRecap(recap)}>
+                  <Share2 size={15} /> Share
+                </button>
+                <button className="btn-primary nudge-btn" onClick={dismissRecap}>New day, let&apos;s go</button>
+              </div>
             </motion.div>
           </div>
         )}
